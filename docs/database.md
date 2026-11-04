@@ -50,16 +50,16 @@ Main attributes:
 - completedAt: set when the task enters DONE, otherwise null
 
 ### TaskAssignment
-Records the active assignee for a task and the manager who made the assignment.
+Records one active assignee for a task and the manager who made the assignment. A task may have multiple assignments.
 
 Main attributes:
 - id: unique assignment identifier
-- taskId: task identifier; at most one active assignee per task
+- taskId: task identifier
 - assigneeId: assigned user identifier
 - assignedById: manager user identifier
 - assignedAt: assignment date
 
-Only active users who are members of the task's project are eligible assignees.
+The `(taskId, assigneeId)` pair is unique, so one user cannot be assigned to the same task twice. Only active users who are members of the task's project are eligible assignees.
 
 ### TaskComment
 Represents a comment written on a task by a project member.
@@ -68,8 +68,8 @@ Main attributes:
 - id: unique comment identifier
 - taskId: task identifier
 - authorId: comment author identifier
-- body: comment text
-- createdAt: comment creation date
+- body: non-whitespace comment text (1-2000 characters)
+- createdAt: comment creation date, assigned by the backend
 
 ## Relationships
 
@@ -77,7 +77,7 @@ Main attributes:
 - Each Task belongs to exactly one Project.
 - Users belong to projects through ProjectMembership.
 - A ProjectMembership has one role: MANAGER or MEMBER.
-- A Task can have zero or one TaskAssignment.
+- A Task can have zero or many TaskAssignments, with no repeated assignee.
 - A Task can have zero or many TaskComments; each comment has one author.
 
 ## Business rules and assumptions
@@ -98,8 +98,10 @@ Main attributes:
 - The system must allow authorized task updates and manager-only deletion.
 - Removing a project or task must require user confirmation.
 - A project has project-scoped managers and members for this implementation exercise.
-- Managers can manage the project and its tasks, assign tasks, and list eligible project members.
+- Managers can manage the project and its tasks, add/remove individual task assignments, and list eligible project members.
 - Members can view/update tasks and add comments, but cannot manage projects or assign tasks.
+- Comments must contain 1-2000 characters and cannot consist only of whitespace; surrounding whitespace is trimmed before persistence.
+- Comment author and creation time are assigned by the backend from the authenticated session and server clock.
 - Authentication uses a server-side HTTP session for the local implementation exercise; account passwords are persisted only as BCrypt hashes.
 - These access, comment, and assignment rules are exercise scope approved by the user; they are not additions to the original product MVP requirements.
 
@@ -143,10 +145,12 @@ Task
 
 TaskAssignment
 - id (PK)
-- taskId (FK, unique)
+- taskId (FK)
 - assigneeId (FK)
 - assignedById (FK)
 - assignedAt
+
+Unique constraint: `(taskId, assigneeId)`.
 
 TaskComment
 - id (PK)
@@ -227,6 +231,7 @@ The database model is aligned with [openapi.yaml](../openapi.yaml):
 - Task has `id`, `projectId`, `title`, `description`, `status`, `priority`, `createdAt`, and `completedAt`.
 
 The schema script upgrades the previous task status values in place: `backlog` becomes `TODO`, `in_progress` becomes `IN_PROGRESS`, and `done` becomes `DONE`. Legacy `review` and `cancelled` values have no approved equivalent in the MVP; if either exists, the new status constraint intentionally prevents startup rather than silently changing its meaning. Resolve such records explicitly before restarting.
+- Existing task assignments are preserved when the single-assignment constraint is replaced by the unique `(taskId, assigneeId)` constraint.
 - The task relationship with the project is represented by `projectId`.
 - The task status and priority values match the API enums: `TODO`, `IN_PROGRESS`, `DONE` and `LOW`, `MEDIUM`, `HIGH`.
 - User, project-member selection, task-comment, and task-assignment operations are included for this implementation exercise.

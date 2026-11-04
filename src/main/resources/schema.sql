@@ -57,11 +57,16 @@ CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
 
 CREATE TABLE IF NOT EXISTS task_assignments (
     id UUID PRIMARY KEY,
-    task_id UUID NOT NULL UNIQUE REFERENCES tasks(id),
+    task_id UUID NOT NULL REFERENCES tasks(id),
     assignee_id UUID NOT NULL REFERENCES app_users(id),
     assigned_by_id UUID NOT NULL REFERENCES app_users(id),
-    assigned_at TIMESTAMP WITH TIME ZONE NOT NULL
+    assigned_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    CONSTRAINT uq_task_assignments_task_assignee UNIQUE (task_id, assignee_id)
 );
+
+ALTER TABLE task_assignments DROP CONSTRAINT IF EXISTS CONSTRAINT_B3;
+ALTER TABLE task_assignments ADD CONSTRAINT IF NOT EXISTS uq_task_assignments_task_assignee
+    UNIQUE (task_id, assignee_id);
 
 CREATE TABLE IF NOT EXISTS task_comments (
     id UUID PRIMARY KEY,

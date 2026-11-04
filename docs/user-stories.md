@@ -94,6 +94,17 @@ Edge cases:
 - term with no match;
 - multiple results with partial similarity.
 
+## Exercise 6 extensions
+
+These collaboration requirements extend the implementation exercise and are not additions to the original product MVP.
+
+- A project manager can assign multiple active project members to one task and remove an individual assignment.
+- The backend rejects duplicate task/user assignments and users who are missing, inactive, or not members of the project.
+- A project member can add and list task comments; each comment displays its author and creation date.
+- Comment content must contain 1-2000 characters and cannot consist only of whitespace.
+- The backend derives comment author and creation time from the authenticated request and server clock.
+- Assignments and comments remain available when a task is reopened or fetched again.
+
 ## General acceptance criteria
 
 - Each user story must be objectively verifiable.

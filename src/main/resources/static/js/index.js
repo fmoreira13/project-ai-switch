@@ -18,6 +18,7 @@ const emptyTasks = document.querySelector("#empty-tasks");
 const taskFilterForm = document.querySelector("#task-filter-form");
 const createTaskForm = document.querySelector("#create-task-form");
 let selectedProject = null;
+let eligibleMembers = [];
 
 const user = await requireSession();
 if (user) {
@@ -97,7 +98,25 @@ async function selectProject(projectId, persist = true) {
     welcome.hidden = true;
     createPanel.hidden = true;
     await loadProjects();
+    await loadEligibleMembers();
     await loadTasks();
+}
+
+async function loadEligibleMembers() {
+    eligibleMembers = [];
+    if (!selectedProject || selectedProject.role !== "MANAGER") {
+        return;
+    }
+
+    const response = await apiFetch(`/projects/${encodeURIComponent(selectedProject.id)}/members`);
+    if (!response) {
+        return;
+    }
+    if (!response.ok) {
+        message.textContent = await readError(response, "Eligible project members could not be loaded.");
+        return;
+    }
+    eligibleMembers = await response.json();
 }
 
 async function loadTasks() {
@@ -203,6 +222,133 @@ function createTaskCard(task) {
 
     form.append(titleLabel, title, descriptionLabel, description, statusLabel, status,
         priorityLabel, priority, actions);
+
+    const assigneeSection = document.createElement("section");
+    assigneeSection.className = "task-assignees";
+    const assigneeHeading = document.createElement("h5");
+    assigneeHeading.textContent = "Assignees";
+    const assigneeList = document.createElement("ul");
+    assigneeList.className = "assignee-list";
+    for (const assignment of task.assignees) {
+        const row = document.createElement("li");
+        const assigneeName = document.createElement("span");
+        assigneeName.textContent = `${assignment.assignee.displayName} (${assignment.assignee.email})`;
+        row.append(assigneeName);
+        if (selectedProject.role === "MANAGER") {
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "secondary";
+            remove.textContent = "Remove";
+            remove.addEventListener("click", async () => {
+                const response = await apiFetch(
+                    `/tasks/${encodeURIComponent(task.id)}/assignees/${encodeURIComponent(assignment.id)}`,
+                    { method: "DELETE" });
+                if (!response) return;
+                if (!response.ok) {
+                    message.textContent = await readError(response, "Assignee could not be removed.");
+                    return;
+                }
+                message.textContent = "Assignee removed.";
+                await loadTasks();
+            });
+            row.append(remove);
+        }
+        assigneeList.append(row);
+    }
+    assigneeSection.append(assigneeHeading, assigneeList);
+
+    if (selectedProject.role === "MANAGER") {
+        const assignedUserIds = new Set(task.assignees.map(assignment => assignment.assignee.id));
+        const availableMembers = eligibleMembers.filter(member => !assignedUserIds.has(member.id));
+        const assignmentForm = document.createElement("form");
+        assignmentForm.className = "assignee-form";
+        const memberSelect = document.createElement("select");
+        memberSelect.name = "assigneeId";
+        memberSelect.required = true;
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = availableMembers.length ? "Select an eligible member" : "No eligible members available";
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        memberSelect.append(placeholder);
+        for (const member of availableMembers) {
+            const option = document.createElement("option");
+            option.value = member.id;
+            option.textContent = `${member.displayName} (${member.email})`;
+            memberSelect.append(option);
+        }
+        const assignButton = document.createElement("button");
+        assignButton.type = "submit";
+        assignButton.textContent = "Add assignee";
+        assignButton.disabled = availableMembers.length === 0;
+        assignmentForm.append(memberSelect, assignButton);
+        assignmentForm.addEventListener("submit", async event => {
+            event.preventDefault();
+            const response = await apiFetch(`/tasks/${encodeURIComponent(task.id)}/assignees`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ assigneeId: memberSelect.value })
+            });
+            if (!response) return;
+            if (!response.ok) {
+                message.textContent = await readError(response, "Assignee could not be added.");
+                return;
+            }
+            message.textContent = "Assignee added.";
+            await loadTasks();
+        });
+        assigneeSection.append(assignmentForm);
+    }
+    item.append(assigneeSection);
+
+    const commentsSection = document.createElement("details");
+    commentsSection.className = "task-comments";
+    const commentsSummary = document.createElement("summary");
+    commentsSummary.textContent = "Comments";
+    const commentsList = document.createElement("ul");
+    commentsList.className = "comment-list";
+    const commentForm = document.createElement("form");
+    commentForm.className = "comment-form";
+    const commentLabel = document.createElement("label");
+    commentLabel.textContent = "Add a comment";
+    const commentBody = document.createElement("textarea");
+    commentBody.name = "body";
+    commentBody.maxLength = 2000;
+    commentBody.rows = 3;
+    commentBody.required = true;
+    const addComment = document.createElement("button");
+    addComment.type = "submit";
+    addComment.textContent = "Add comment";
+    commentForm.append(commentLabel, commentBody, addComment);
+    commentsSection.append(commentsSummary, commentsList, commentForm);
+    commentsSection.addEventListener("toggle", async () => {
+        if (commentsSection.open) {
+            await loadTaskComments(task.id, commentsList);
+        }
+    });
+    commentForm.addEventListener("submit", async event => {
+        event.preventDefault();
+        if (!commentBody.value.trim()) {
+            message.textContent = "A comment must contain non-whitespace text.";
+            commentBody.focus();
+            return;
+        }
+        const response = await apiFetch(`/tasks/${encodeURIComponent(task.id)}/comments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ body: commentBody.value })
+        });
+        if (!response) return;
+        if (response.status !== 201) {
+            message.textContent = await readError(response, "Comment could not be added.");
+            return;
+        }
+        commentForm.reset();
+        message.textContent = "Comment added.";
+        await loadTaskComments(task.id, commentsList);
+    });
+    item.append(commentsSection);
+
     form.addEventListener("submit", async event => {
         event.preventDefault();
         const response = await apiFetch(`/tasks/${encodeURIComponent(task.id)}`, {
@@ -224,8 +370,37 @@ function createTaskCard(task) {
         await loadTasks();
     });
 
-    item.append(form);
+    item.prepend(form);
     return item;
+}
+
+async function loadTaskComments(taskId, list) {
+    const response = await apiFetch(`/tasks/${encodeURIComponent(taskId)}/comments`);
+    if (!response) {
+        return;
+    }
+    if (!response.ok) {
+        message.textContent = await readError(response, "Comments could not be loaded.");
+        return;
+    }
+
+    const comments = await response.json();
+    list.replaceChildren();
+    for (const comment of comments) {
+        const item = document.createElement("li");
+        const metadata = document.createElement("p");
+        const author = document.createElement("strong");
+        author.textContent = comment.authorName;
+        const date = document.createElement("time");
+        date.dateTime = comment.createdAt;
+        date.textContent = new Date(comment.createdAt).toLocaleString();
+        metadata.append(author, document.createTextNode(" · "), date);
+        const body = document.createElement("p");
+        body.className = "comment-body";
+        body.textContent = comment.body;
+        item.append(metadata, body);
+        list.append(item);
+    }
 }
 
 function makeSelect(name, options, selected) {

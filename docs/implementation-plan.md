@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation is in progress. Project and task APIs, the H2 schema upgrade, task filters/counts, and the task management UI are implemented. Java 25 integration tests, JavaScript syntax checks, OpenAPI YAML/path validation, and migration behavior on a disposable database copy pass; Redocly lint and a final browser walkthrough remain.
+Implementation is in progress. The task CRUD/filter increment and both Exercise 6 increments (multi-assignee management and comments) are implemented. Java 25 tests, JavaScript syntax, OpenAPI structure/path checks, and disposable H2 migration checks pass; the diff has been reviewed. A browser walkthrough and Redocly lint remain.
 
 ## Scope and evidence
 
@@ -31,7 +31,7 @@ The documented MVP covers project and task creation, listing, task status update
 - The product MVP remains project/task focused; comments, assignments, and authentication are exercise-specific extensions.
 - The project/task MVP and the fields/status values in the current data model and API are the documented baseline.
 - Authentication, advanced user management, comments, and detailed change history are listed outside the initial MVP.
-- The current OpenAPI contract has eleven paths and twenty HTTP operations, including the four session lifecycle endpoints; the two core project/task resources remain the MVP focus.
+- The current OpenAPI contract has twelve paths and twenty HTTP operations, including the four session lifecycle endpoints; the two core project/task resources remain the MVP focus.
 
 ### Confirmed by the user for this plan
 
@@ -39,6 +39,7 @@ The documented MVP covers project and task creation, listing, task status update
 - The user delegated the database choice and selection of the two simple Ficha 02 operations.
 - The machine has Java 25.0.3 installed (Java 26.0.1 is the shell default); the user requested using Java 25 and Gradle Wrapper.
 - The user approved project-scoped MANAGER/MEMBER permissions and active project-member eligibility for task assignments.
+- For Exercise 6, the user approved multiple assignees per task, preventing duplicate user/task pairs, manager-only assignment management under the previously approved access policy, and the proposed per-assignment API routes.
 - The user selected HTTP session authentication for Exercise 3 so the application can support a real login/profile/logout lifecycle.
 - For Exercise 4, the user confirmed project names should be compared case-insensitively after trimming.
 - Exercise 5 requires task title length 3-150, description up to 2000 characters, statuses `TODO`, `IN_PROGRESS`, `DONE`, and priorities `LOW`, `MEDIUM`, `HIGH`, with defaults `TODO` and `MEDIUM`.
@@ -119,7 +120,7 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 
 ### Increment 3 - Implement the approved API operations
 
-**Status:** In progress; project operations, task CRUD/filter/detail operations, task/member/comment/assignment endpoints, and the session lifecycle are implemented. Java integration tests cover the Exercise 5 task fields, access, filters/counts, and cleanup.
+**Status:** In progress; project/task operations, multi-assignee selection/removal, task comments, and the session lifecycle are implemented. Integration tests cover assignment eligibility, duplicates, individual removal, comment validation, backend-derived authorship/time, and reload queries.
 
 **Components/files:** Spring Boot REST controllers and request/response DTOs for the approved operations; `openapi.yaml` remains the contract source for review.
 
@@ -141,13 +142,14 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 - Enforce session authentication and the approved project membership policy.
 - Derive project ownership and comment authorship from the authenticated principal.
 - Implement project-member selection, task comments, and task assignment for the exercise.
+- Allow multiple assignees per task, reject duplicate user/task pairs in the backend/database, and allow managers to remove one assignment at a time.
 - Redirect unauthenticated/expired UI sessions to sign-in and show a readable message.
 
-**Verification:** API tests cover authentication and access cases; Redocly lint passes for `openapi.yaml`; compare implemented routes against documented operations; manually verify redirect and expired-session messaging in a browser.
+**Verification:** Java 25 API integration tests pass; the OpenAPI YAML parses and its templated paths have matching path parameters. Redocly lint was not available in the environment. Manually verify redirect and expired-session messaging in a browser.
 
 ### Increment 4 - Implement the MVP interface
 
-**Status:** In progress; sign-in/session guard and project/task management interfaces are implemented. Task create/edit/delete, filters, and status counts are wired to the API; remaining manual checks are pending.
+**Status:** In progress; sign-in/session guard, project/task management, assignee selection/removal, and task comment interface are implemented. Final browser walkthrough remains.
 
 **Components/files:** Static HTML/CSS/JavaScript views based on [wireframe.png](ui/wireframe.png).
 
@@ -161,16 +163,19 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 - Project data is reloaded from the API on page load so it remains visible after a backend restart.
 - Project managers can create/delete tasks; project members can update task fields as permitted by the approved exercise policy.
 - Task title, description, status, priority, filters, and counts match the API contract and update without a page reload.
+- Managers can add multiple eligible assignees and remove one without affecting the others; the list reappears after reloading the project/task list.
+- Project members can add comments and view each comment's author and date; whitespace-only and over-2000-character content is rejected.
+- Comment authorship and timestamps come from the backend, and comments are returned again after fetching/reopening the task.
 - Do not show deadline/date fields unless they are added to the approved requirements and data model.
 - Destructive actions ask for confirmation before issuing removal requests.
 - Empty results and API validation errors are presented clearly.
 - Do not add a UI for roles, comments, or assignments beyond the approved exercise scope.
 
-**Verification:** Project create/list/detail, reload, and backend-restart behavior were checked in a browser. Still manually verify project editing, duplicate/error presentation, delete confirmation/conflict, and then implement the remaining task UI flows.
+**Verification:** Earlier project create/list/detail, reload, and backend-restart behavior was checked in a browser. JavaScript syntax validation passes. The Exercise 6 assignee/comment flows and remaining project error/confirmation states still need a manual browser walkthrough.
 
 ### Increment 5 - End-to-end verification and handoff
 
-**Status:** In progress; automated task CRUD/access/filter checks are being added before the final OpenAPI and browser verification.
+**Status:** In progress; automated task CRUD/access/filter, multi-assignee, and comment checks pass. Final browser walkthrough and optional Redocly lint remain.
 
 **Components/files:** Automated test suite, OpenAPI contract, README, architecture, data model, and implementation plan.
 

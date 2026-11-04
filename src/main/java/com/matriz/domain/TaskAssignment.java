@@ -6,18 +6,20 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "task_assignments")
+@Table(name = "task_assignments",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"task_id", "assignee_id"}))
 public class TaskAssignment {
     @Id
     private UUID id;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "task_id", nullable = false, unique = true)
+    @JoinColumn(name = "task_id", nullable = false)
     private Task task;
 
     @ManyToOne(optional = false)
@@ -62,9 +64,4 @@ public class TaskAssignment {
         return assignedAt;
     }
 
-    public void reassign(AppUser assignee, AppUser assignedBy) {
-        this.assignee = assignee;
-        this.assignedBy = assignedBy;
-        this.assignedAt = Instant.now();
-    }
 }

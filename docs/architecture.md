@@ -44,8 +44,9 @@ The initial MVP documents did not define user accounts, roles, or permissions. F
 - each project has a manager and members;
 - the authenticated user who creates a project becomes its manager;
 - a manager can consult, edit, and remove an accessible project, manage its tasks, and assign tasks;
-- a member can view and update tasks and add comments, but cannot manage the project or assign tasks;
+- a member can view and update tasks and add comments, but cannot manage the project or task assignments;
 - only active users who are members of the same project are eligible assignees.
+- only project managers can add or remove individual task assignments.
 
 This is a user-approved exercise policy, not a pre-existing MVP requirement. The login endpoint issues an HttpOnly session cookie, the profile endpoint returns the authenticated user, and logout invalidates the session. Demo data and integration tests cover manager/member visibility and operation restrictions.
 
@@ -132,7 +133,7 @@ Task
 Exercise-only persistence additions:
 - User with unique email, display name, BCrypt password hash, active flag, and creation time.
 - ProjectMembership linking users to projects with MANAGER or MEMBER role.
-- TaskAssignment linking a task to one active project member and recording who assigned it.
+- TaskAssignment linking a task to an active project member and recording who assigned it; a task can have multiple assignees, without duplicate user/task pairs.
 - TaskComment linking task, author, text, and creation time.
 
 These additions satisfy the implementation exercise and the user-approved access scenario; they do not expand the originally documented product MVP.

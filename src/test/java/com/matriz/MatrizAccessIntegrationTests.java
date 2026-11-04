@@ -119,14 +119,14 @@ class MatrizAccessIntegrationTests {
                 .andExpect(jsonPath("$.authorId").value(users.findByEmailIgnoreCase("member@matriz.local")
                         .orElseThrow().getId().toString()));
 
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(
-                        "/tasks/{taskId}/assignee", task.getId())
+        mockMvc.perform(post("/tasks/{taskId}/assignees", task.getId())
                         .session(member)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"assigneeEmail":"manager@matriz.local"}
-                                """))
+                                {"assigneeId":"%s"}
+                                """.formatted(users.findByEmailIgnoreCase("manager@matriz.local")
+                                .orElseThrow().getId())))
                 .andExpect(status().isForbidden());
     }
 
@@ -143,29 +143,159 @@ class MatrizAccessIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.email == 'member@matriz.local')]").exists());
 
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(
-                        "/tasks/{taskId}/assignee", task.getId())
+        mockMvc.perform(post("/tasks/{taskId}/assignees", task.getId())
                         .session(manager)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"assigneeEmail":"member@matriz.local"}
-                                """))
+                                {"assigneeId":"%s"}
+                                """.formatted(users.findByEmailIgnoreCase("manager@matriz.local")
+                                .orElseThrow().getId())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.assignees[?(@.assignee.email == 'manager@matriz.local')]").exists())
+                .andExpect(jsonPath("$.assignees[?(@.assignee.email == 'member@matriz.local')]").exists());
+
+        mockMvc.perform(post("/tasks/{taskId}/assignees", task.getId())
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"assigneeId":"%s"}
+                                """.formatted(users.findByEmailIgnoreCase("manager@matriz.local")
+                                .orElseThrow().getId())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("TASK_ASSIGNEE_ALREADY_ASSIGNED"));
+
+        String managerAssignmentId = assignments.findByTask_IdAndAssignee_Id(
+                        task.getId(),
+                        users.findByEmailIgnoreCase("manager@matriz.local").orElseThrow().getId())
+                .orElseThrow()
+                .getId()
+                .toString();
+        mockMvc.perform(delete("/tasks/{taskId}/assignees/{assignmentId}", task.getId(), managerAssignmentId)
+                        .session(manager)
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/tasks/{taskId}", task.getId()).session(manager))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.assignee.email").value("member@matriz.local"));
+                .andExpect(jsonPath("$.assignees.length()").value(1))
+                .andExpect(jsonPath("$.assignees[0].assignee.email").value("member@matriz.local"));
+
+        mockMvc.perform(post("/tasks/{taskId}/assignees", task.getId())
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"assigneeId":"%s"}
+                                """.formatted(java.util.UUID.randomUUID())))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ASSIGNEE_NOT_FOUND"));
 
         Project beta = projects.findByName("Matriz Demo - Beta").orElseThrow();
         Task betaTask = tasks.findAllByProject_IdInOrderByCreatedAtDesc(java.util.List.of(beta.getId()))
                 .stream().findFirst().orElseThrow();
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(
-                        "/tasks/{taskId}/assignee", betaTask.getId())
+        mockMvc.perform(post("/tasks/{taskId}/assignees", betaTask.getId())
                         .session(member)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"assigneeEmail":"manager@matriz.local"}
-                                """))
+                                {"assigneeId":"%s"}
+                                """.formatted(users.findByEmailIgnoreCase("manager@matriz.local")
+                                .orElseThrow().getId())))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void commentsAreValidatedServerAuthoredAndAvailableWhenTaskIsReopened() throws Exception {
+        Project alpha = projects.findByName("Matriz Demo - Alpha").orElseThrow();
+        MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
+        MockHttpSession member = login("member@matriz.local", "test-member-password");
+        MvcResult createdTask = mockMvc.perform(post("/tasks")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"projectId":"%s","title":"Comment flow %s"}
+                                """.formatted(alpha.getId(), java.util.UUID.randomUUID())))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String taskId = com.jayway.jsonpath.JsonPath.read(
+                createdTask.getResponse().getContentAsString(), "$.id");
+        String memberId = users.findByEmailIgnoreCase("member@matriz.local").orElseThrow().getId().toString();
+
+        MvcResult createdComment = mockMvc.perform(post("/tasks/{taskId}/comments", taskId)
+                        .session(member)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"body":"  Persisted comment  ","authorId":"00000000-0000-0000-0000-000000000000","createdAt":"2000-01-01T00:00:00Z"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.body").value("Persisted comment"))
+                .andExpect(jsonPath("$.authorId").value(memberId))
+                .andExpect(jsonPath("$.authorName").value("Demo Member"))
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andReturn();
+        String commentId = com.jayway.jsonpath.JsonPath.read(
+                createdComment.getResponse().getContentAsString(), "$.id");
+        String createdAt = com.jayway.jsonpath.JsonPath.read(
+                createdComment.getResponse().getContentAsString(), "$.createdAt");
+        assertNotEquals("2000-01-01T00:00:00Z", createdAt);
+
+        mockMvc.perform(get("/tasks/{taskId}", taskId).session(member))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/tasks/{taskId}/comments", taskId).session(member))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(commentId))
+                .andExpect(jsonPath("$[0].body").value("Persisted comment"))
+                .andExpect(jsonPath("$[0].authorId").value(memberId))
+                .andExpect(jsonPath("$[0].authorName").value("Demo Member"))
+                .andExpect(jsonPath("$[0].createdAt").value(createdAt));
+
+        mockMvc.perform(post("/tasks/{taskId}/comments", taskId)
+                        .session(member)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"body":" \\t\\n "}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+        MvcResult oneCharacterComment = mockMvc.perform(post("/tasks/{taskId}/comments", taskId)
+                        .session(member)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"body":"x"}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn();
+        assertEquals("x", com.jayway.jsonpath.JsonPath.read(
+                oneCharacterComment.getResponse().getContentAsString(), "$.body"));
+
+        String maxComment = "c".repeat(2000);
+        MvcResult maxLengthComment = mockMvc.perform(post("/tasks/{taskId}/comments", taskId)
+                        .session(member)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"body":"%s"}
+                                """.formatted(maxComment)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        assertEquals(2000, ((String) com.jayway.jsonpath.JsonPath.read(
+                maxLengthComment.getResponse().getContentAsString(), "$.body")).length());
+
+        mockMvc.perform(post("/tasks/{taskId}/comments", taskId)
+                        .session(member)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"body":"%s"}
+                                """.formatted("c".repeat(2001))))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -482,14 +612,15 @@ class MatrizAccessIntegrationTests {
                 .andExpect(jsonPath("$.counts.inProgress").isNumber())
                 .andExpect(jsonPath("$.counts.done").isNumber());
 
-        mockMvc.perform(put("/tasks/{taskId}/assignee", taskId)
+        mockMvc.perform(post("/tasks/{taskId}/assignees", taskId)
                         .session(manager)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"assigneeEmail":"member@matriz.local"}
-                                """))
-                .andExpect(status().isOk());
+                                {"assigneeId":"%s"}
+                                """.formatted(users.findByEmailIgnoreCase("member@matriz.local")
+                                .orElseThrow().getId())))
+                .andExpect(status().isCreated());
         MockHttpSession member = login("member@matriz.local", "test-member-password");
         mockMvc.perform(post("/tasks/{taskId}/comments", taskId)
                         .session(member)
@@ -525,7 +656,7 @@ class MatrizAccessIntegrationTests {
                         .session(manager)
                         .with(csrf()))
                 .andExpect(status().isNoContent());
-        assertTrue(assignments.findByTask_Id(java.util.UUID.fromString(taskId)).isEmpty());
+        assertTrue(assignments.findAllByTask_IdOrderByAssignedAtAsc(java.util.UUID.fromString(taskId)).isEmpty());
         assertTrue(comments.findAllByTask_IdOrderByCreatedAtAsc(java.util.UUID.fromString(taskId)).isEmpty());
         mockMvc.perform(get("/tasks/{taskId}", taskId).session(manager))
                 .andExpect(status().isNotFound());

@@ -66,7 +66,7 @@ public class DemoDataInitializer {
                             beta, "Review project setup", "Seed task for project-scoped visibility checks.",
                             TaskStatus.TODO, TaskPriority.MEDIUM)));
 
-            if (assignments.findByTask_Id(alphaTask.getId()).isEmpty()) {
+            if (assignments.findAllByTask_IdOrderByAssignedAtAsc(alphaTask.getId()).isEmpty()) {
                 assignments.save(new TaskAssignment(alphaTask, member, manager));
             }
             if (comments.findAllByTask_IdOrderByCreatedAtAsc(alphaTask.getId()).isEmpty()) {

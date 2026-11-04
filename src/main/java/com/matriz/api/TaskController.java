@@ -99,17 +99,21 @@ public class TaskController {
         return tasks.addComment(authentication.getName(), taskId, request);
     }
 
-    @PutMapping("/{taskId}/assignee")
+    @PostMapping("/{taskId}/assignees")
+    @ResponseStatus(HttpStatus.CREATED)
     public ApiModels.TaskResponse assign(
             Authentication authentication,
             @PathVariable UUID taskId,
             @Valid @RequestBody ApiModels.AssignTaskRequest request) {
-        return tasks.assign(authentication.getName(), taskId, request.assigneeEmail());
+        return tasks.assign(authentication.getName(), taskId, request.assigneeId());
     }
 
-    @DeleteMapping("/{taskId}/assignee")
+    @DeleteMapping("/{taskId}/assignees/{assignmentId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void unassign(Authentication authentication, @PathVariable UUID taskId) {
-        tasks.unassign(authentication.getName(), taskId);
+    public void unassign(
+            Authentication authentication,
+            @PathVariable UUID taskId,
+            @PathVariable UUID assignmentId) {
+        tasks.unassign(authentication.getName(), taskId, assignmentId);
     }
 }

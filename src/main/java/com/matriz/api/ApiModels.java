@@ -68,7 +68,10 @@ public final class ApiModels {
             TaskPriority priority,
             Instant createdAt,
             Instant completedAt,
-            UserSummary assignee) {
+            List<TaskAssignmentResponse> assignees) {
+    }
+
+    public record TaskAssignmentResponse(UUID id, UserSummary assignee, Instant assignedAt) {
     }
 
     public record TaskListResponse(List<TaskResponse> items, TaskCounts counts) {
@@ -87,7 +90,7 @@ public final class ApiModels {
             ProjectRole role) {
     }
 
-    public record CreateCommentRequest(@NotBlank @Size(max = 2000) String body) {
+    public record CreateCommentRequest(@NotBlank @Size(min = 1, max = 2000) String body) {
     }
 
     public record CommentResponse(
@@ -99,7 +102,7 @@ public final class ApiModels {
             Instant createdAt) {
     }
 
-    public record AssignTaskRequest(@NotBlank @Email String assigneeEmail) {
+    public record AssignTaskRequest(@NotNull UUID assigneeId) {
     }
 
     public record ErrorResponse(String code, String message) {

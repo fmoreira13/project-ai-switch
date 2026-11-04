@@ -526,11 +526,11 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-  /tasks/{taskId}/assignee:
-    put:
-      summary: Assign a task
-      description: Only a project manager may assign a task to an active member of the same project.
-      operationId: assignTask
+  /tasks/{taskId}/assignees:
+    post:
+      summary: Add a task assignee
+      description: Adds one active member of the project to a task. Only the project manager may add assignees, and a user cannot be assigned twice.
+      operationId: addTaskAssignee
       tags:
         - Tasks
       parameters:
@@ -547,8 +547,8 @@ paths:
             schema:
               $ref: '#/components/schemas/AssignTaskRequest'
       responses:
-        '200':
-          description: Task assigned.
+        '201':
+          description: Assignee added.
           content:
             application/json:
               schema:
@@ -561,9 +561,13 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /tasks/{taskId}/assignees/{assignmentId}:
     delete:
-      summary: Unassign a task
-      operationId: unassignTask
+      summary: Remove one task assignee
+      description: Removes only the specified assignment. Only the project manager may remove assignees.
+      operationId: removeTaskAssignee
       tags:
         - Tasks
       parameters:
@@ -573,9 +577,15 @@ paths:
           schema:
             type: string
             format: uuid
+        - in: path
+          name: assignmentId
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '204':
-          description: Task unassigned.
+          description: Assignee removed.
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -659,6 +669,7 @@ components:
         - status
         - priority
         - createdAt
+        - assignees
       properties:
         id:
           type: string
@@ -684,17 +695,22 @@ components:
         completedAt:
           type: [string, 'null']
           format: date-time
+        assignees:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskAssignment'
+    TaskAssignment:
+      type: object
+      required: [id, assignee, assignedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
         assignee:
-          type: [object, 'null']
-          properties:
-            id:
-              type: string
-              format: uuid
-            email:
-              type: string
-              format: email
-            displayName:
-              type: string
+          $ref: '#/components/schemas/AuthenticatedUser'
+        assignedAt:
+          type: string
+          format: date-time
     CreateProjectRequest:
       type: object
       required:
@@ -809,13 +825,14 @@ components:
           type: string
           minLength: 1
           maxLength: 2000
+          description: Whitespace-only values are rejected; surrounding whitespace is trimmed before storage.
     AssignTaskRequest:
       type: object
-      required: [assigneeEmail]
+      required: [assigneeId]
       properties:
-        assigneeEmail:
+        assigneeId:
           type: string
-          format: email
+          format: uuid
     ProjectMember:
       type: object
       required: [id, email, displayName, role]

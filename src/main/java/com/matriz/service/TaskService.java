@@ -139,7 +139,7 @@ public class TaskService {
         Task task = access.requireTask(taskId);
         access.requireManager(task.getProject(), user);
         comments.deleteAll(comments.findAllByTask_IdOrderByCreatedAtAsc(taskId));
-        assignments.findByTask_Id(taskId).ifPresent(assignments::delete);
+        assignments.deleteAll(assignments.findAllByTask_IdOrderByAssignedAtAsc(taskId));
         tasks.delete(task);
     }
 
@@ -148,7 +148,7 @@ public class TaskService {
         AppUser author = access.requireUser(email);
         Task task = access.requireTask(taskId);
         access.requireTaskMembership(task, author);
-        TaskComment comment = comments.save(new TaskComment(task, author, request.body().trim()));
+        TaskComment comment = comments.save(new TaskComment(task, author, request.body().strip()));
         return toCommentResponse(comment);
     }
 
@@ -163,38 +163,49 @@ public class TaskService {
     }
 
     @Transactional
-    public ApiModels.TaskResponse assign(String email, UUID taskId, String assigneeEmail) {
+    public ApiModels.TaskResponse assign(String email, UUID taskId, UUID assigneeId) {
         AppUser manager = access.requireUser(email);
         Task task = access.requireTask(taskId);
         access.requireManager(task.getProject(), manager);
-        AppUser assignee = users.findByEmailIgnoreCase(assigneeEmail)
+        AppUser assignee = users.findById(assigneeId)
                 .filter(AppUser::isActive)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ASSIGNEE_NOT_FOUND", "Active assignee not found."));
         access.requireMembership(task.getProject(), assignee);
 
-        TaskAssignment assignment = assignments.findByTask_Id(taskId)
-                .map(existing -> {
-                    existing.reassign(assignee, manager);
-                    return existing;
-                })
-                .orElseGet(() -> new TaskAssignment(task, assignee, manager));
-        assignments.save(assignment);
+        if (assignments.findByTask_IdAndAssignee_Id(taskId, assigneeId).isPresent()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "TASK_ASSIGNEE_ALREADY_ASSIGNED",
+                    "This user is already assigned to the task.");
+        }
+        assignments.save(new TaskAssignment(task, assignee, manager));
         return toResponse(task);
     }
 
     @Transactional
-    public void unassign(String email, UUID taskId) {
+    public void unassign(String email, UUID taskId, UUID assignmentId) {
         AppUser manager = access.requireUser(email);
         Task task = access.requireTask(taskId);
         access.requireManager(task.getProject(), manager);
-        assignments.findByTask_Id(taskId).ifPresent(assignments::delete);
+        TaskAssignment assignment = assignments.findByIdAndTask_Id(assignmentId, taskId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "TASK_ASSIGNMENT_NOT_FOUND",
+                        "Task assignment not found."));
+        assignments.delete(assignment);
     }
 
     private ApiModels.TaskResponse toResponse(Task task) {
-        ApiModels.UserSummary assignee = assignments.findByTask_Id(task.getId())
-                .map(TaskAssignment::getAssignee)
-                .map(user -> new ApiModels.UserSummary(user.getId(), user.getEmail(), user.getDisplayName()))
-                .orElse(null);
+        List<ApiModels.TaskAssignmentResponse> assignees =
+                assignments.findAllByTask_IdOrderByAssignedAtAsc(task.getId()).stream()
+                        .map(assignment -> new ApiModels.TaskAssignmentResponse(
+                                assignment.getId(),
+                                new ApiModels.UserSummary(
+                                        assignment.getAssignee().getId(),
+                                        assignment.getAssignee().getEmail(),
+                                        assignment.getAssignee().getDisplayName()),
+                                assignment.getAssignedAt()))
+                        .toList();
         return new ApiModels.TaskResponse(
                 task.getId(),
                 task.getProject().getId(),
@@ -204,7 +215,7 @@ public class TaskService {
                 task.getPriority(),
                 task.getCreatedAt(),
                 task.getCompletedAt(),
-                assignee);
+                assignees);
     }
 
     private String requireValidTitle(String title) {
