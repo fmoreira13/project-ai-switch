@@ -21,6 +21,35 @@ Justification:
 - it supports clear separation between presentation, business rules, and persistence;
 - it respects the rule of keeping the MVP simple and limited to the two essential resources.
 
+## Implementation stack
+
+The language and backend framework confirmed for Class 02 are Java and Spring Boot. The machine has Java 25.0.3 and Java 26.0.1 installed; the project targets Java 25. H2 is selected for the database because it integrates directly with Spring Boot, is straightforward to run locally, and does not require a separate database server. Use file-based storage for local persistence and an in-memory H2 database for automated tests.
+
+The planned application stack is:
+- Language: Java
+- Java version: 25
+- Backend framework: Spring Boot
+- Persistence integration: Spring Data JPA
+- Database: H2
+- Build tool: Gradle Wrapper (`./gradlew`)
+- Frontend: plain HTML, CSS, and JavaScript served by the Spring Boot application; no separate frontend framework is selected.
+
+The database choice, build tool, Java target, and frontend approach are implementation decisions for this exercise, not decisions confirmed in Class 02. See [docs/implementation-plan.md](implementation-plan.md) for the recorded scope and remaining decision gates.
+
+## Access model status
+
+The initial MVP documents did not define user accounts, roles, or permissions. For this implementation exercise, the user approved the following project-scoped access proposal:
+
+- users authenticate with HTTP Basic for the local exercise;
+- each project has a manager and members;
+- a manager can manage the project and its tasks, and assign tasks;
+- a member can view and update tasks and add comments, but cannot manage the project or assign tasks;
+- only active users who are members of the same project are eligible assignees.
+
+This is a user-approved exercise policy, not a pre-existing MVP requirement. Demo data and integration tests cover manager/member visibility and operation restrictions.
+
+Comments and assignees were not part of the original MVP, but the current exercise explicitly requests their schema, demo data, and user selection. They are implemented as exercise scope extensions; do not treat them as confirmed production requirements.
+
 ## System objective
 
 The system must allow:
@@ -94,6 +123,14 @@ Task
 - status: backlog | in_progress | review | done | cancelled
 - createdAt: datetime
 - completedAt: datetime nullable
+
+Exercise-only persistence additions:
+- User with unique email, display name, BCrypt password hash, active flag, and creation time.
+- ProjectMembership linking users to projects with MANAGER or MEMBER role.
+- TaskAssignment linking a task to one active project member and recording who assigned it.
+- TaskComment linking task, author, text, and creation time.
+
+These additions satisfy the implementation exercise and the user-approved access scenario; they do not expand the originally documented product MVP.
 
 ## Main flows
 

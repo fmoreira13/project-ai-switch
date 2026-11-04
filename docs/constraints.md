@@ -5,8 +5,8 @@
 - The client has not yet defined the application's features in detail.
 - There are no formalized business rules or complete acceptance criteria.
 - The type of interface has not been defined.
-- User types, permissions, and access levels have not been defined.
-- The need for persistence has not been confirmed.
+- For the implementation exercise, the user approved project-scoped `MANAGER` and `MEMBER` access. This does not establish a production access policy.
+- H2 has been selected for the implementation exercise; deployment and access requirements still require confirmation.
 - The maturity level of the solution has not been defined: MVP or full product.
 
 ## Assumptions made
@@ -30,11 +30,11 @@ These points should be discussed with the client and confirmed before any implem
 
 ## Pending technical decisions
 
-- programming language and framework;
+- the Java and Spring Boot stack has been confirmed for Class 02;
+- H2 has been selected as the database for this exercise;
 - interface type (web, desktop, mobile, or terminal);
-- data storage technology;
-- authentication and authorization level;
-- data model for projects, tasks, and users;
+- production authentication and authorization level;
+- production data model for users and access control (the implementation-exercise schema is documented in `database.md`);
 - backup, history, and recovery mechanisms.
 
 ## Scope limitations
@@ -46,3 +46,5 @@ At this stage, the project should keep a controlled scope and focus only on:
 - simple search.
 
 More advanced features such as authentication, permissions, integrations, advanced reports, or resource management are not part of the current scope and should be discussed and validated in later phases.
+
+For this implementation exercise only, HTTP Basic authentication and the project-scoped manager/member policy approved by the user are used to seed and test distinct access. Comments and task assignments are also included because the exercise requires their persistence; they remain outside the initially documented product MVP.

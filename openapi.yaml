@@ -8,9 +8,10 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
 servers:
-  - url: https://api.matriz.local/v1
+  - url: http://127.0.0.1:8080
     description: Local development environment
-security: []
+security:
+  - basicAuth: []
 paths:
   /projects:
     get:
@@ -19,7 +20,6 @@ paths:
       operationId: listProjects
       tags:
         - Projects
-      security: []
       responses:
         '200':
           description: Operation successful.
@@ -37,7 +37,6 @@ paths:
       operationId: createProject
       tags:
         - Projects
-      security: []
       requestBody:
         required: true
         content:
@@ -65,7 +64,6 @@ paths:
       operationId: deleteProject
       tags:
         - Projects
-      security: []
       parameters:
         - in: query
           name: projectId
@@ -79,8 +77,12 @@ paths:
           description: Project removed successfully.
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /tasks:
@@ -90,7 +92,6 @@ paths:
       operationId: listOrSearchTasks
       tags:
         - Tasks
-      security: []
       parameters:
         - in: query
           name: projectId
@@ -116,6 +117,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
     post:
@@ -124,7 +127,6 @@ paths:
       operationId: createTask
       tags:
         - Tasks
-      security: []
       requestBody:
         required: true
         content:
@@ -142,6 +144,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -152,7 +156,6 @@ paths:
       operationId: updateTask
       tags:
         - Tasks
-      security: []
       parameters:
         - in: query
           name: taskId
@@ -178,6 +181,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -188,7 +193,6 @@ paths:
       operationId: deleteTask
       tags:
         - Tasks
-      security: []
       parameters:
         - in: query
           name: taskId
@@ -202,11 +206,161 @@ paths:
           description: Task removed successfully.
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /projects/{projectId}/members:
+    get:
+      summary: List eligible project members
+      description: Returns active project members that a project manager may assign to tasks.
+      operationId: listProjectMembers
+      tags:
+        - Projects
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Active project members.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectMemberListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tasks/{taskId}/comments:
+    get:
+      summary: List task comments
+      operationId: listTaskComments
+      tags:
+        - Tasks
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task comments in creation order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Add a comment to a task
+      operationId: addTaskComment
+      tags:
+        - Tasks
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '201':
+          description: Comment created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tasks/{taskId}/assignee:
+    put:
+      summary: Assign a task
+      description: Only a project manager may assign a task to an active member of the same project.
+      operationId: assignTask
+      tags:
+        - Tasks
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignTaskRequest'
+      responses:
+        '200':
+          description: Task assigned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Unassign a task
+      operationId: unassignTask
+      tags:
+        - Tasks
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Task unassigned.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
   schemas:
     Project:
       type: object
@@ -257,6 +411,17 @@ components:
         completedAt:
           type: [string, 'null']
           format: date-time
+        assignee:
+          type: [object, 'null']
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            displayName:
+              type: string
     CreateProjectRequest:
       type: object
       required:
@@ -302,6 +467,62 @@ components:
         status:
           type: string
           enum: [backlog, in_progress, review, done, cancelled]
+    Comment:
+      type: object
+      required: [id, taskId, authorId, authorName, body, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        taskId:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        authorName:
+          type: string
+        body:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        createdAt:
+          type: string
+          format: date-time
+    CreateCommentRequest:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    AssignTaskRequest:
+      type: object
+      required: [assigneeEmail]
+      properties:
+        assigneeEmail:
+          type: string
+          format: email
+    ProjectMember:
+      type: object
+      required: [id, email, displayName, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        role:
+          type: string
+          enum: [MANAGER, MEMBER]
+    ProjectMemberListResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/ProjectMember'
     ProjectListResponse:
       type: object
       required:
@@ -343,6 +564,12 @@ components:
             $ref: '#/components/schemas/Error'
     Unauthorized:
       description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Authenticated user does not have access to this project or operation.
       content:
         application/json:
           schema:

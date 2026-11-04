@@ -34,8 +34,57 @@ The project documentation is organized as follows:
 - [docs/constraints.md](docs/constraints.md): constraints, assumptions, and scope limitations.
 - [docs/architecture.md](docs/architecture.md): simplified architecture pack aligned with the MVP.
 - [docs/database.md](docs/database.md): MVP data model.
+- [docs/implementation-plan.md](docs/implementation-plan.md): incremental implementation plan, decisions, acceptance criteria, and verification.
 - [docs/ui/wireframe.png](docs/ui/wireframe.png): visual prototype of the MVP project and task management flow.
+
+## Technology
+
+- Java 25 (the machine also has Java 26 installed; use the installed Java 25 JDK for this project).
+- Spring Boot 4.0.9.
+- Gradle Wrapper; use `./gradlew` rather than a system Maven or Gradle installation.
+- Spring Data JPA and H2.
+- Plain HTML, CSS, and JavaScript for the frontend.
+
+## Run locally
+
+On macOS, select the installed Java 25 JDK and verify it:
+
+```sh
+export JAVA_HOME=$(/usr/libexec/java_home -v 25)
+export PATH="$JAVA_HOME/bin:$PATH"
+java -version
+```
+
+Create a local environment file from the fictitious example and load it into the current shell:
+
+```sh
+cp .env.example .env
+set -a
+source .env
+set +a
+```
+
+Start the application:
+
+```sh
+./gradlew bootRun
+```
+
+In another terminal, with Java 25 selected, run the tests:
+
+```sh
+./gradlew test
+```
+
+The local API is available at `http://localhost:8080`; health check: `http://localhost:8080/api/health`. H2 uses a file under `data/`, which is ignored by Git and preserved between application starts. The schema is initialized idempotently from `src/main/resources/schema.sql`; demo data is inserted only when its records are absent.
+
+Demo HTTP Basic users (fictitious credentials in `.env.example`):
+
+- `manager@matriz.local` / `MATRIZ_DEMO_MANAGER_PASSWORD`
+- `member@matriz.local` / `MATRIZ_DEMO_MEMBER_PASSWORD`
+
+The demo passwords are sample-only. Change them in `.env` before using the demo accounts. The password values are applied when each demo user is first created; changing `.env` later does not change an existing password. Never commit `.env` or real credentials. The accounts and seed records are not deleted or reset on startup.
 
 ## Current project status
 
-The project is currently in the analysis and specification phase. No code has been implemented yet and no final technology has been defined. The current focus is clarifying the problem, defining the MVP, and preparing the context for the next development phase.
+The Spring Boot project skeleton and H2 persistence schema are implemented. The application uses Java 25 and the Gradle Wrapper. Core API implementation and the remaining MVP flows are tracked in [docs/implementation-plan.md](docs/implementation-plan.md); access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md).
