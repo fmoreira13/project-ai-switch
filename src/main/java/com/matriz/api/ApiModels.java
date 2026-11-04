@@ -84,4 +84,15 @@ public final class ApiModels {
 
     public record ErrorResponse(String code, String message) {
     }
+
+    public record LoginRequest(
+            @NotBlank @Email @Size(max = 254) String email,
+            @NotBlank @Size(max = 1000) String password) {
+    }
+
+    public record AuthUserResponse(UUID id, String email, String displayName) {
+    }
+
+    public record CsrfTokenResponse(String token) {
+    }
 }

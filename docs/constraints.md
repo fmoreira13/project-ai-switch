@@ -47,4 +47,4 @@ At this stage, the project should keep a controlled scope and focus only on:
 
 More advanced features such as authentication, permissions, integrations, advanced reports, or resource management are not part of the current scope and should be discussed and validated in later phases.
 
-For this implementation exercise only, HTTP Basic authentication and the project-scoped manager/member policy approved by the user are used to seed and test distinct access. Comments and task assignments are also included because the exercise requires their persistence; they remain outside the initially documented product MVP.
+For this implementation exercise only, email/password authentication with an HTTP session and the project-scoped manager/member policy approved by the user are used to test distinct access. Comments and task assignments are also included because the exercise requires their persistence; they remain outside the initially documented product MVP.

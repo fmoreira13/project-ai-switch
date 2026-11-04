@@ -78,13 +78,25 @@ In another terminal, with Java 25 selected, run the tests:
 
 The local API is available at `http://localhost:8080`; health check: `http://localhost:8080/api/health`. H2 uses a file under `data/`, which is ignored by Git and preserved between application starts. The schema is initialized idempotently from `src/main/resources/schema.sql`; demo data is inserted only when its records are absent.
 
-Demo HTTP Basic users (fictitious credentials in `.env.example`):
+Demo users (fictitious credentials in `.env.example`):
 
 - `manager@matriz.local` / `MATRIZ_DEMO_MANAGER_PASSWORD`
 - `member@matriz.local` / `MATRIZ_DEMO_MEMBER_PASSWORD`
 
 The demo passwords are sample-only. Change them in `.env` before using the demo accounts. The password values are applied when each demo user is first created; changing `.env` later does not change an existing password. Never commit `.env` or real credentials. The accounts and seed records are not deleted or reset on startup.
 
+## Sign-in and session lifecycle
+
+The local application uses server-side HTTP sessions:
+
+1. The browser requests `GET /auth/csrf` to establish a pre-authentication session and receive its CSRF token.
+2. It sends `POST /auth/login` with the email/password JSON body and the token in `X-CSRF-TOKEN`.
+3. On success, the server creates an authenticated session and returns an HttpOnly `JSESSIONID` cookie. Passwords are stored only as BCrypt hashes.
+4. `GET /auth/me` returns the profile for the current session. Project ownership and comment authorship are derived from that authenticated identity, not from client-supplied identity fields.
+5. `POST /auth/logout`, with a CSRF token, invalidates the server-side session. Protected API calls without a valid session return `401`.
+
+The `JSESSIONID` session cookie is HttpOnly and SameSite=Lax; the CSRF token is bound to the server-side session and returned in the `/auth/csrf` response body. For local HTTP, `MATRIZ_SESSION_COOKIE_SECURE` defaults to `false`; set it to `true` when serving over HTTPS. The sign-in page is `/login.html`; the protected landing page redirects to sign-in when the session is missing or expired and displays a clear message.
+
 ## Current project status
 
-The Spring Boot project skeleton and H2 persistence schema are implemented. The application uses Java 25 and the Gradle Wrapper. Core API implementation and the remaining MVP flows are tracked in [docs/implementation-plan.md](docs/implementation-plan.md); access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md).
+The Spring Boot project, H2 persistence schema, session authentication, and access checks are implemented. The application uses Java 25 and the Gradle Wrapper. The project/task MVP interface and the remaining verification steps are tracked in [docs/implementation-plan.md](docs/implementation-plan.md); access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md).

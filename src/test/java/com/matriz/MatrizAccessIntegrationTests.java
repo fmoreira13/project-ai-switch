@@ -15,12 +15,15 @@ import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -61,12 +64,15 @@ class MatrizAccessIntegrationTests {
 
     @Test
     void managerAndMemberOnlySeeProjectsTheyBelongTo() throws Exception {
-        mockMvc.perform(get("/projects").with(httpBasic("manager@matriz.local", "test-manager-password")))
+        MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
+        MockHttpSession member = login("member@matriz.local", "test-member-password");
+
+        mockMvc.perform(get("/projects").session(manager))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[?(@.name == 'Matriz Demo - Alpha')]").exists())
                 .andExpect(jsonPath("$.items[?(@.name == 'Matriz Demo - Beta')]").doesNotExist());
 
-        mockMvc.perform(get("/projects").with(httpBasic("member@matriz.local", "test-member-password")))
+        mockMvc.perform(get("/projects").session(member))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[?(@.name == 'Matriz Demo - Alpha')]").exists())
                 .andExpect(jsonPath("$.items[?(@.name == 'Matriz Demo - Beta')]").exists());
@@ -77,9 +83,11 @@ class MatrizAccessIntegrationTests {
         Project alpha = projects.findByName("Matriz Demo - Alpha").orElseThrow();
         Task task = tasks.findAllByProject_IdInOrderByCreatedAtDesc(java.util.List.of(alpha.getId()))
                 .stream().findFirst().orElseThrow();
+        MockHttpSession member = login("member@matriz.local", "test-member-password");
 
         mockMvc.perform(post("/tasks")
-                        .with(httpBasic("member@matriz.local", "test-member-password"))
+                        .session(member)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"projectId":"%s","title":"Member task"}
@@ -87,7 +95,8 @@ class MatrizAccessIntegrationTests {
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(patch("/tasks")
-                        .with(httpBasic("member@matriz.local", "test-member-password"))
+                        .session(member)
+                        .with(csrf())
                         .queryParam("taskId", task.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -97,17 +106,21 @@ class MatrizAccessIntegrationTests {
                 .andExpect(jsonPath("$.status").value("review"));
 
         mockMvc.perform(post("/tasks/{taskId}/comments", task.getId())
-                        .with(httpBasic("member@matriz.local", "test-member-password"))
+                        .session(member)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"body":"Member comment"}
+                                {"body":"Member comment","authorId":"00000000-0000-0000-0000-000000000000"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.body").value("Member comment"));
+                .andExpect(jsonPath("$.body").value("Member comment"))
+                .andExpect(jsonPath("$.authorId").value(users.findByEmailIgnoreCase("member@matriz.local")
+                        .orElseThrow().getId().toString()));
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(
                         "/tasks/{taskId}/assignee", task.getId())
-                        .with(httpBasic("member@matriz.local", "test-member-password"))
+                        .session(member)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"assigneeEmail":"manager@matriz.local"}
@@ -120,15 +133,18 @@ class MatrizAccessIntegrationTests {
         Project alpha = projects.findByName("Matriz Demo - Alpha").orElseThrow();
         Task task = tasks.findAllByProject_IdInOrderByCreatedAtDesc(java.util.List.of(alpha.getId()))
                 .stream().findFirst().orElseThrow();
+        MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
+        MockHttpSession member = login("member@matriz.local", "test-member-password");
 
         mockMvc.perform(get("/projects/{projectId}/members", alpha.getId())
-                        .with(httpBasic("manager@matriz.local", "test-manager-password")))
+                        .session(manager))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.email == 'member@matriz.local')]").exists());
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(
                         "/tasks/{taskId}/assignee", task.getId())
-                        .with(httpBasic("manager@matriz.local", "test-manager-password"))
+                        .session(manager)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"assigneeEmail":"member@matriz.local"}
@@ -141,7 +157,8 @@ class MatrizAccessIntegrationTests {
                 .stream().findFirst().orElseThrow();
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(
                         "/tasks/{taskId}/assignee", betaTask.getId())
-                        .with(httpBasic("member@matriz.local", "test-member-password"))
+                        .session(member)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"assigneeEmail":"manager@matriz.local"}
@@ -152,7 +169,102 @@ class MatrizAccessIntegrationTests {
     @Test
     void unauthenticatedRequestsAreRejected() throws Exception {
         mockMvc.perform(get("/projects"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
+
+        mockMvc.perform(get("/auth/me"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void signInAndLandingPagesAreAvailableToTheSessionGuard() throws Exception {
+        mockMvc.perform(get("/login.html")).andExpect(status().isOk());
+        mockMvc.perform(get("/index.html")).andExpect(status().isOk());
+        mockMvc.perform(get("/js/auth.js")).andExpect(status().isOk());
+    }
+
+    @Test
+    void loginProfileAndLogoutUseAnHttpSession() throws Exception {
+        assertTrue(users.findByEmailIgnoreCase("manager@matriz.local")
+                .orElseThrow().getPassword().startsWith("$2a$"));
+
+        MvcResult csrfResult = mockMvc.perform(get("/auth/csrf"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andReturn();
+        String csrfToken = com.jayway.jsonpath.JsonPath.read(
+                csrfResult.getResponse().getContentAsString(), "$.token");
+        MockHttpSession session = (MockHttpSession) csrfResult.getRequest().getSession(false);
+        String anonymousSessionId = session.getId();
+
+        MvcResult loginResult = mockMvc.perform(post("/auth/login")
+                        .session(session)
+                        .header("X-CSRF-TOKEN", csrfToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"manager@matriz.local","password":"test-manager-password"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("manager@matriz.local"))
+                .andReturn();
+        session = (MockHttpSession) loginResult.getRequest().getSession(false);
+        assertNotEquals(anonymousSessionId, session.getId());
+
+        mockMvc.perform(get("/auth/me").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("manager@matriz.local"))
+                .andExpect(jsonPath("$.displayName").value("Demo Manager"));
+
+        mockMvc.perform(post("/auth/logout")
+                        .session(session)
+                        .header("X-CSRF-TOKEN", csrfToken))
+                .andExpect(status().isNoContent());
+        assertTrue(session.isInvalid());
+
+        mockMvc.perform(get("/auth/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void loginRejectsInvalidCredentialsAndStateChangesRequireCsrf() throws Exception {
+        mockMvc.perform(post("/auth/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"manager@matriz.local","password":"wrong-password"}
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"manager@matriz.local","password":"test-manager-password"}
+                                """))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/auth/csrf"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty());
+    }
+
+    @Test
+    void projectCreatorIsInferredFromTheAuthenticatedUser() throws Exception {
+        MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
+        mockMvc.perform(post("/projects")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Session-owned project","ownerEmail":"member@matriz.local"}
+                                """))
+                .andExpect(status().isCreated());
+
+        Project created = projects.findByName("Session-owned project").orElseThrow();
+        var managerUser = users.findByEmailIgnoreCase("manager@matriz.local").orElseThrow();
+        var memberUser = users.findByEmailIgnoreCase("member@matriz.local").orElseThrow();
+        assertTrue(memberships.findByProject_IdAndUser_Id(created.getId(), managerUser.getId()).isPresent());
+        assertTrue(memberships.findByProject_IdAndUser_Id(created.getId(), memberUser.getId()).isEmpty());
     }
 
     @Test
@@ -179,5 +291,18 @@ class MatrizAccessIntegrationTests {
         assertEquals(membershipsBefore, memberships.count());
         assertEquals(assignmentsBefore, assignments.count());
         assertEquals(commentsBefore, comments.count());
+    }
+
+    private MockHttpSession login(String email, String password) throws Exception {
+        MvcResult result = mockMvc.perform(post("/auth/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s","password":"%s"}
+                                """.formatted(email, password)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(email))
+                .andReturn();
+        return (MockHttpSession) result.getRequest().getSession(false);
     }
 }

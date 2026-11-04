@@ -89,7 +89,7 @@ Main attributes:
 - A project has project-scoped managers and members for this implementation exercise.
 - Managers can manage the project and its tasks, assign tasks, and list eligible project members.
 - Members can view/update tasks and add comments, but cannot manage projects or assign tasks.
-- Authentication uses HTTP Basic for the local implementation exercise.
+- Authentication uses a server-side HTTP session for the local implementation exercise; account passwords are persisted only as BCrypt hashes.
 - These access, comment, and assignment rules are exercise scope approved by the user; they are not additions to the original product MVP requirements.
 
 ## Cardinalities
@@ -213,7 +213,8 @@ The database model is aligned with [openapi.yaml](../openapi.yaml):
 - The task relationship with the project is represented by `projectId`.
 - The task status values match the API enum: `backlog`, `in_progress`, `review`, `done`, `cancelled`.
 - User, project-member selection, task-comment, and task-assignment operations are included for this implementation exercise.
-- API authentication uses HTTP Basic; access to projects and tasks is checked against project memberships.
+- API authentication uses the session cookie issued by `POST /auth/login`; access to projects and tasks is checked against project memberships.
+- Project ownership and comment authorship are derived from the authenticated user and are not accepted as client-supplied identity.
 
 ## Schema initialization and demo data
 

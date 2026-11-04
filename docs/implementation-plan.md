@@ -17,7 +17,7 @@ The documented MVP covers project and task creation, listing, task status update
 | Class 02 technology | The user confirmed Java and Spring Boot as the Class 02 stack and requested the installed Java 25 with Gradle Wrapper. | The shell default is Java 26.0.1, with Java 25.0.3 also installed. | The project targets Java 25, uses Gradle Wrapper, Spring Data JPA, and H2. README documents selecting Java 25. |
 | Two Ficha 02 operations | The user delegated the choice of two simple operations based on existing documentation and OpenAPI. | The Ficha 02 baseline is narrower than the documented MVP. | Select `POST /projects` (create a project) and `POST /tasks` (create a task in an existing project). Other API operations support broader MVP/exercise scope. |
 | Project update | Requirements include create, consult, update, and remove projects. | OpenAPI has no project update operation. | Confirm whether project editing is in the implementation scope; if so, add it to the contract and plan before coding. |
-| Authentication and access | Original MVP docs left access policy undefined. | Access must be defined to test distinct user access. | User approved project-scoped MANAGER/MEMBER access: managers manage projects/tasks and assign; members view/update tasks and comment; only active project members are eligible assignees. HTTP Basic is used for this local exercise. |
+| Authentication and access | Original MVP docs left access policy undefined. | Access must be defined to test distinct user access. | User approved project-scoped MANAGER/MEMBER access. For Exercise 3, HTTP session authentication provides login, profile, and logout; roles remain scoped to memberships. |
 | Comments and assignees | Not part of the original MVP. | Exercise 2 requires their schema and reproducible demo records; assignment also needs eligible-user selection. | Included as exercise scope only. Schema, entities, API endpoints, and demo data are present; this is not a new confirmed product requirement. |
 | Project deletion | Project-task relationship is documented, but deletion behavior for a project with tasks is not. | Cascading deletion versus preventing deletion is a business/data-loss decision. | Confirm with the instructor before implementing project removal. |
 | Duplicate project names | US-01 prohibits duplicate names and the API has a `409` response. | Database model does not define uniqueness or case/whitespace comparison behavior. | Confirm comparison semantics; implement the matching database constraint and tests. |
@@ -31,7 +31,7 @@ The documented MVP covers project and task creation, listing, task status update
 - The product MVP remains project/task focused; comments, assignments, and authentication are exercise-specific extensions.
 - The project/task MVP and the fields/status values in the current data model and API are the documented baseline.
 - Authentication, advanced user management, comments, and detailed change history are listed outside the initial MVP.
-- The current OpenAPI contract has five paths and twelve HTTP operations; the two base resources remain `/projects` and `/tasks`.
+- The current OpenAPI contract has nine paths and sixteen HTTP operations, including the four session lifecycle endpoints; the two core project/task resources remain the MVP focus.
 
 ### Confirmed by the user for this plan
 
@@ -39,18 +39,19 @@ The documented MVP covers project and task creation, listing, task status update
 - The user delegated the database choice and selection of the two simple Ficha 02 operations.
 - The machine has Java 25.0.3 installed (Java 26.0.1 is the shell default); the user requested using Java 25 and Gradle Wrapper.
 - The user approved project-scoped MANAGER/MEMBER permissions and active project-member eligibility for task assignments.
+- The user selected HTTP session authentication for Exercise 3 so the application can support a real login/profile/logout lifecycle.
 
 ### Selected for this exercise
 
 - H2 is selected as the database, with Spring Data JPA, file-based local persistence, and in-memory storage for automated tests.
 - `POST /projects` and `POST /tasks` are selected as the two simple Ficha 02 operations. They form a proposed baseline subset, not the full MVP API.
 - A plain HTML/CSS/JavaScript frontend served by Spring Boot is selected as the simplest UI approach; no frontend framework is introduced.
-- HTTP Basic is used for local exercise authentication.
+- Session authentication uses email/password, a server-side session, an HttpOnly `JSESSIONID` cookie, and CSRF tokens for state-changing requests.
 - Users, memberships, projects, tasks, assignments, and comments are represented in the schema; demo seeding is idempotent and non-destructive.
 
 ### Requires instructor/client confirmation
 
-- Whether the exercise's Basic Auth and access policy are suitable for any future production release.
+- Whether the exercise's session and access policy are suitable for any future production release.
 - Whether the larger CRUD/search scope is part of this implementation beyond the two Ficha 02 operations.
 - Whether projects can be edited and how project deletion behaves when tasks exist.
 - Duplicate-name comparison rules and approved task statuses/transitions.
@@ -69,7 +70,7 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 
 **Acceptance criteria:**
 - Record the selected Ficha 02 baseline: `POST /projects`, then `POST /tasks`.
-- Record the user-approved access policy and HTTP Basic local exercise authentication.
+- Record the user-approved access policy and session authentication lifecycle.
 - Record comments/assignments as Exercise 2 persistence scope, with active project members as eligible assignees.
 - Record project update/deletion semantics, duplicate-name behavior, and task status rules as pending decisions; do not extend implementation based on assumptions.
 - Update affected requirements, data model, and API contract so they do not contradict one another.
@@ -114,7 +115,7 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 
 ### Increment 3 - Implement the approved API operations
 
-**Status:** In progress; core project/task endpoints and member/comment/assignment endpoints are implemented. `./gradlew clean test` passes on Java 25.0.3, and Redocly lint validates `openapi.yaml`; a manual HTTP walkthrough remains outstanding.
+**Status:** In progress; project/task/member/comment/assignment endpoints and the session login/profile/logout lifecycle are implemented. Ten Java 25 tests pass, covering valid/invalid credentials, the session-bound CSRF token/header exchange, missing sessions, two-user access, session-ID rotation, logout invalidation, server-derived project/comment identity, and public delivery of the sign-in/session-guard pages. Redocly lint passes; a browser walkthrough remains outstanding.
 
 **Components/files:** Spring Boot REST controllers and request/response DTOs for the approved operations; `openapi.yaml` remains the contract source for review.
 
@@ -125,14 +126,17 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 - For the Ficha 02 baseline, implement `POST /projects` and `POST /tasks`; require a project to exist before creating its task.
 - Validate required fields, references, status values, and not-found/conflict cases.
 - Keep response codes and response shapes consistent with the OpenAPI contract.
-- Enforce HTTP Basic authentication and the approved project membership policy.
+- Implement login, profile, and logout with server-side sessions and CSRF protection.
+- Enforce session authentication and the approved project membership policy.
+- Derive project ownership and comment authorship from the authenticated principal.
 - Implement project-member selection, task comments, and task assignment for the exercise.
+- Redirect unauthenticated/expired UI sessions to sign-in and show a readable message.
 
-**Verification:** API tests cover each approved operation and its error cases; run Redocly lint on `openapi.yaml`; compare implemented routes against documented operations.
+**Verification:** API tests cover authentication and access cases; Redocly lint passes for `openapi.yaml`; compare implemented routes against documented operations; manually verify redirect and expired-session messaging in a browser.
 
 ### Increment 4 - Implement the MVP interface
 
-**Status:** Not started; depends on Increment 3.
+**Status:** In progress for session sign-in and session-guard pages; the project/task MVP interface remains not started and depends on Increment 3.
 
 **Components/files:** Static HTML/CSS/JavaScript views based on [wireframe.png](ui/wireframe.png).
 

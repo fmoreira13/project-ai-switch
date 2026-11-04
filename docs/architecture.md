@@ -40,13 +40,13 @@ The database choice, build tool, Java target, and frontend approach are implemen
 
 The initial MVP documents did not define user accounts, roles, or permissions. For this implementation exercise, the user approved the following project-scoped access proposal:
 
-- users authenticate with HTTP Basic for the local exercise;
+- users sign in with email/password and a server-side HTTP session for this exercise;
 - each project has a manager and members;
 - a manager can manage the project and its tasks, and assign tasks;
 - a member can view and update tasks and add comments, but cannot manage the project or assign tasks;
 - only active users who are members of the same project are eligible assignees.
 
-This is a user-approved exercise policy, not a pre-existing MVP requirement. Demo data and integration tests cover manager/member visibility and operation restrictions.
+This is a user-approved exercise policy, not a pre-existing MVP requirement. The login endpoint issues an HttpOnly session cookie, the profile endpoint returns the authenticated user, and logout invalidates the session. Demo data and integration tests cover manager/member visibility and operation restrictions.
 
 Comments and assignees were not part of the original MVP, but the current exercise explicitly requests their schema, demo data, and user selection. They are implemented as exercise scope extensions; do not treat them as confirmed production requirements.
 

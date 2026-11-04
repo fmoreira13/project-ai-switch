@@ -3,7 +3,9 @@ info:
   title: Matriz API
   version: 1.0.0
   description: >-
-    REST contract for the Matriz MVP, focused on project and task management.
+    REST contract for the Matriz application. Authentication uses an HTTP session
+    cookie. Fetch /auth/csrf first and send the returned session-bound token in
+    the X-CSRF-TOKEN header for state-changing requests, including login and logout.
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -11,8 +13,87 @@ servers:
   - url: http://127.0.0.1:8080
     description: Local development environment
 security:
-  - basicAuth: []
+  - sessionCookie: []
 paths:
+  /auth/csrf:
+    get:
+      summary: Obtain a CSRF token
+      description: Returns a session-bound CSRF token needed in the X-CSRF-TOKEN header for state-changing requests.
+      operationId: getCsrfToken
+      security: []
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: CSRF token initialized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CsrfToken'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /auth/login:
+    post:
+      summary: Start a session
+      description: Authenticates a user, rotates the session identifier, and sets the JSESSIONID cookie.
+      operationId: login
+      security: []
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Session started.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: HttpOnly JSESSIONID session cookie.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticatedUser'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /auth/me:
+    get:
+      summary: Get the current profile
+      description: Returns the identity associated with the active session.
+      operationId: getCurrentProfile
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Current authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticatedUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/logout:
+    post:
+      summary: End the current session
+      description: Invalidates the server-side session and clears its security context. Requires a CSRF token.
+      operationId: logout
+      tags:
+        - Authentication
+      responses:
+        '204':
+          description: Session ended.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /projects:
     get:
       summary: List projects
@@ -54,6 +135,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '409':
           $ref: '#/components/responses/Conflict'
         '500':
@@ -358,10 +441,48 @@ paths:
           $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
-    basicAuth:
-      type: http
-      scheme: basic
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+      description: HTTP session cookie issued by POST /auth/login.
   schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          format: password
+          maxLength: 1000
+    AuthenticatedUser:
+      type: object
+      required:
+        - id
+        - email
+        - displayName
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+    CsrfToken:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
     Project:
       type: object
       required:
