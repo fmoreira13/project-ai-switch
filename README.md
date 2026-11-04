@@ -78,6 +78,8 @@ In another terminal, with Java 25 selected, run the tests:
 
 The local API is available at `http://localhost:8080`; health check: `http://localhost:8080/api/health`. H2 uses a file under `data/`, which is ignored by Git and preserved between application starts. The schema is initialized idempotently from `src/main/resources/schema.sql`; demo data is inserted only when its records are absent.
 
+After signing in, use `http://localhost:8080/` to create, list, search, inspect, edit, and remove projects. Project names must contain 3-100 characters and are unique after trimming, without regard to case; descriptions are limited to 1000 characters. Projects with tasks cannot be removed and return a conflict, preserving all dependent records. The project list is membership-scoped; only managers can edit or remove their projects. No project pagination is defined in the current API contract.
+
 Demo users (fictitious credentials in `.env.example`):
 
 - `manager@matriz.local` / `MATRIZ_DEMO_MANAGER_PASSWORD`
@@ -99,4 +101,4 @@ The `JSESSIONID` session cookie is HttpOnly and SameSite=Lax; the CSRF token is 
 
 ## Current project status
 
-The Spring Boot project, H2 persistence schema, session authentication, and access checks are implemented. The application uses Java 25 and the Gradle Wrapper. The project/task MVP interface and the remaining verification steps are tracked in [docs/implementation-plan.md](docs/implementation-plan.md); access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md).
+The Spring Boot project, H2 persistence schema, session authentication, project management interface, and project access checks are implemented. The application uses Java 25 and the Gradle Wrapper. Task interface work and remaining verification steps are tracked in [docs/implementation-plan.md](docs/implementation-plan.md); access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md).

@@ -16,7 +16,12 @@ public final class ApiModels {
     }
 
     public record CreateProjectRequest(
-            @NotBlank @Size(max = 200) String name,
+            @NotBlank @Size(min = 3, max = 100) String name,
+            @Size(max = 1000) String description) {
+    }
+
+    public record UpdateProjectRequest(
+            @NotBlank @Size(min = 3, max = 100) String name,
             @Size(max = 1000) String description) {
     }
 
@@ -24,7 +29,8 @@ public final class ApiModels {
             UUID id,
             String name,
             String description,
-            Instant createdAt) {
+            Instant createdAt,
+            ProjectRole role) {
     }
 
     public record ProjectListResponse(List<ProjectResponse> items) {

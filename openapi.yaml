@@ -97,10 +97,17 @@ paths:
   /projects:
     get:
       summary: List projects
-      description: Returns the list of projects in the MVP.
+      description: Returns projects accessible to the authenticated user, optionally filtered by name.
       operationId: listProjects
       tags:
         - Projects
+      parameters:
+        - in: query
+          name: q
+          required: false
+          schema:
+            type: string
+          description: Case-insensitive project-name search.
       responses:
         '200':
           description: Operation successful.
@@ -143,7 +150,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
     delete:
       summary: Remove project
-      description: Removes an existing project after user confirmation.
+      description: Removes a project with no tasks after user confirmation. Projects with tasks are retained and return 409.
       operationId: deleteProject
       tags:
         - Projects
@@ -168,6 +175,69 @@ paths:
           $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /projects/{projectId}:
+    get:
+      summary: Get project details
+      description: Returns a project accessible to the authenticated user.
+      operationId: getProject
+      tags:
+        - Projects
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update project
+      description: Replaces a project's name and description. Only a project manager may update it.
+      operationId: updateProject
+      tags:
+        - Projects
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+      responses:
+        '200':
+          description: Project updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /tasks:
     get:
       summary: List or search tasks
@@ -489,19 +559,24 @@ components:
         - id
         - name
         - createdAt
+        - role
       properties:
         id:
           type: string
           format: uuid
         name:
           type: string
-          minLength: 1
-          maxLength: 200
+          minLength: 3
+          maxLength: 100
         description:
           type: [string, 'null']
+          maxLength: 1000
         createdAt:
           type: string
           format: date-time
+        role:
+          type: string
+          enum: [MANAGER, MEMBER]
     Task:
       type: object
       required:
@@ -550,8 +625,20 @@ components:
       properties:
         name:
           type: string
-          minLength: 1
-          maxLength: 200
+          minLength: 3
+          maxLength: 100
+        description:
+          type: [string, 'null']
+          maxLength: 1000
+    UpdateProjectRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
         description:
           type: [string, 'null']
           maxLength: 1000

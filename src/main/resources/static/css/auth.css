@@ -5,10 +5,17 @@
     background: #f3f5f9;
 }
 
+[hidden] {
+    display: none !important;
+}
+
 body {
+    margin: 0;
+}
+
+.login-page {
     display: grid;
     min-height: 100vh;
-    margin: 0;
     place-items: center;
 }
 
@@ -20,6 +27,110 @@ body {
     border-radius: 0.75rem;
     background: white;
     box-shadow: 0 0.5rem 1.5rem #17203312;
+}
+
+.workspace {
+    box-sizing: border-box;
+    width: min(100% - 2rem, 76rem);
+    margin: 2rem auto;
+}
+
+.workspace-header,
+.section-heading,
+.form-actions,
+.search-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.workspace-header {
+    margin-bottom: 1.5rem;
+}
+
+.workspace-header h1,
+.section-heading h2 {
+    margin-bottom: 0.25rem;
+}
+
+.workspace-header p,
+.section-heading h2 {
+    margin-top: 0;
+}
+
+.project-layout {
+    display: grid;
+    grid-template-columns: minmax(16rem, 0.8fr) minmax(0, 1.6fr);
+    align-items: start;
+    gap: 1rem;
+}
+
+.project-sidebar,
+.project-content > .card {
+    width: 100%;
+}
+
+.project-sidebar {
+    padding: 1.25rem;
+}
+
+.project-form,
+.search-form {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.search-form {
+    margin: 1rem 0;
+}
+
+.search-row input {
+    min-width: 0;
+    flex: 1;
+}
+
+.project-list {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.project-list-item {
+    width: 100%;
+    margin: 0;
+    background: transparent;
+    color: #172033;
+    text-align: left;
+}
+
+.project-list-item[aria-current="true"] {
+    border-color: #2457c5;
+    background: #eaf0ff;
+}
+
+.description {
+    white-space: pre-wrap;
+}
+
+.muted {
+    color: #5c6678;
+}
+
+.message {
+    min-height: 1.5em;
+}
+
+button.secondary {
+    border: 1px solid #aeb8c9;
+    background: #fff;
+    color: #172033;
+}
+
+button.danger {
+    background: #a52b36;
 }
 
 h1 {
@@ -56,4 +167,14 @@ button:disabled {
 
 #message {
     min-height: 1.5em;
+}
+
+@media (max-width: 44rem) {
+    .project-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .workspace-header {
+        align-items: flex-start;
+    }
 }

@@ -7,6 +7,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,8 +29,15 @@ public class ProjectController {
     }
 
     @GetMapping
-    public ApiModels.ProjectListResponse list(Authentication authentication) {
-        return new ApiModels.ProjectListResponse(projects.list(authentication.getName()));
+    public ApiModels.ProjectListResponse list(
+            Authentication authentication,
+            @RequestParam(required = false) String q) {
+        return new ApiModels.ProjectListResponse(projects.list(authentication.getName(), q));
+    }
+
+    @GetMapping("/{projectId}")
+    public ApiModels.ProjectResponse get(Authentication authentication, @PathVariable UUID projectId) {
+        return projects.get(authentication.getName(), projectId);
     }
 
     @PostMapping
@@ -37,6 +46,14 @@ public class ProjectController {
             Authentication authentication,
             @Valid @RequestBody ApiModels.CreateProjectRequest request) {
         return projects.create(authentication.getName(), request);
+    }
+
+    @PutMapping("/{projectId}")
+    public ApiModels.ProjectResponse update(
+            Authentication authentication,
+            @PathVariable UUID projectId,
+            @Valid @RequestBody ApiModels.UpdateProjectRequest request) {
+        return projects.update(authentication.getName(), projectId, request);
     }
 
     @DeleteMapping

@@ -3,16 +3,75 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Matriz</title>
+    <title>Projects - Matriz</title>
     <link rel="stylesheet" href="/css/auth.css">
     <script type="module" src="/js/index.js"></script>
 </head>
 <body>
-<main class="card">
-    <h1>Matriz</h1>
-    <p>Signed in as <strong id="profile"></strong></p>
-    <p id="message" role="status" aria-live="polite"></p>
-    <button id="logout" type="button">Sign out</button>
+<main class="workspace">
+    <header class="workspace-header">
+        <div>
+            <h1>Matriz</h1>
+            <p>Signed in as <strong id="profile"></strong></p>
+        </div>
+        <button id="logout" type="button" class="secondary">Sign out</button>
+    </header>
+    <p id="message" class="message" role="status" aria-live="polite"></p>
+    <div class="project-layout">
+        <aside class="card project-sidebar">
+            <div class="section-heading">
+                <h2>Projects</h2>
+                <button id="new-project" type="button">New project</button>
+            </div>
+            <form id="search-form" class="search-form">
+                <label for="search">Search by name</label>
+                <div class="search-row">
+                    <input id="search" name="q" type="search" maxlength="100">
+                    <button type="submit" class="secondary">Search</button>
+                </div>
+            </form>
+            <p id="empty-projects" class="muted" hidden>No projects found.</p>
+            <ul id="project-list" class="project-list" aria-label="Projects"></ul>
+        </aside>
+        <section class="project-content">
+            <section id="create-panel" class="card" hidden>
+                <h2>Create a project</h2>
+                <form id="create-form" class="project-form">
+                    <label for="create-name">Name</label>
+                    <input id="create-name" name="name" minlength="3" maxlength="100" required>
+                    <label for="create-description">Description</label>
+                    <textarea id="create-description" name="description" maxlength="1000" rows="4"></textarea>
+                    <div class="form-actions">
+                        <button type="submit">Create project</button>
+                        <button id="cancel-create" type="button" class="secondary">Cancel</button>
+                    </div>
+                </form>
+            </section>
+            <section id="project-details" class="card" hidden>
+                <h2 id="detail-name"></h2>
+                <p id="detail-description" class="description"></p>
+                <p id="detail-role" class="muted"></p>
+                <div id="manager-actions" class="form-actions" hidden>
+                    <button id="edit-project" type="button">Edit project</button>
+                    <button id="delete-project" type="button" class="danger">Delete project</button>
+                </div>
+                <form id="edit-form" class="project-form" hidden>
+                    <label for="edit-name">Name</label>
+                    <input id="edit-name" name="name" minlength="3" maxlength="100" required>
+                    <label for="edit-description">Description</label>
+                    <textarea id="edit-description" name="description" maxlength="1000" rows="4"></textarea>
+                    <div class="form-actions">
+                        <button type="submit">Save changes</button>
+                        <button id="cancel-edit" type="button" class="secondary">Cancel</button>
+                    </div>
+                </form>
+            </section>
+            <section id="welcome" class="card">
+                <h2>Manage your projects</h2>
+                <p class="muted">Create a project or select one from the list to view its details.</p>
+            </section>
+        </section>
+    </div>
 </main>
 </body>
 </html>

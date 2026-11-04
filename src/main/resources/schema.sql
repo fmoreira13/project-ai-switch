@@ -9,10 +9,15 @@ CREATE TABLE IF NOT EXISTS app_users (
 
 CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY,
-    name VARCHAR(200) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL UNIQUE,
     description VARCHAR(1000),
+    normalized_name VARCHAR(100) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
+
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS normalized_name VARCHAR(100);
+UPDATE projects SET normalized_name = UPPER(TRIM(name)) WHERE normalized_name IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_projects_normalized_name ON projects(normalized_name);
 
 CREATE TABLE IF NOT EXISTS project_memberships (
     id UUID PRIMARY KEY,

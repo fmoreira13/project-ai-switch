@@ -8,4 +8,8 @@ import java.util.UUID;
 
 public interface ProjectRepository extends JpaRepository<Project, UUID> {
     Optional<Project> findByName(String name);
+
+    boolean existsByNormalizedName(String normalizedName);
+
+    boolean existsByNormalizedNameAndIdNot(String normalizedName, UUID id);
 }

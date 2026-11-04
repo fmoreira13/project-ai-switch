@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,21 +35,48 @@ public class ProjectService {
     }
 
     @Transactional(readOnly = true)
-    public List<ApiModels.ProjectResponse> list(String email) {
+    public List<ApiModels.ProjectResponse> list(String email, String query) {
         AppUser user = access.requireUser(email);
+        String normalizedQuery = query == null ? "" : Project.normalizeName(query);
         return memberships.findAllByUser_Id(user.getId()).stream()
-                .map(ProjectMembership::getProject)
-                .map(this::toResponse)
+                .filter(membership -> membership.getProject().getNormalizedName().contains(normalizedQuery))
+                .sorted(Comparator.comparing(membership -> membership.getProject().getNormalizedName()))
+                .map(membership -> toResponse(membership.getProject(), membership.getRole()))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ApiModels.ProjectResponse get(String email, UUID projectId) {
+        AppUser user = access.requireUser(email);
+        Project project = access.requireProject(projectId);
+        ProjectMembership membership = access.requireMembership(project, user);
+        return toResponse(project, membership.getRole());
     }
 
     @Transactional
     public ApiModels.ProjectResponse create(String email, ApiModels.CreateProjectRequest request) {
-        access.requireUser(email);
-        Project project = projects.save(new Project(request.name().trim(), request.description()));
         AppUser manager = access.requireUser(email);
-        memberships.save(new ProjectMembership(project, manager, ProjectRole.MANAGER));
-        return toResponse(project);
+        String name = request.name().trim();
+        validateTrimmedName(name);
+        ensureNameAvailable(name, null);
+        Project project = projects.save(new Project(name, request.description()));
+        ProjectMembership membership = memberships.save(new ProjectMembership(project, manager, ProjectRole.MANAGER));
+        return toResponse(project, membership.getRole());
+    }
+
+    @Transactional
+    public ApiModels.ProjectResponse update(
+            String email,
+            UUID projectId,
+            ApiModels.UpdateProjectRequest request) {
+        AppUser user = access.requireUser(email);
+        Project project = access.requireProject(projectId);
+        ProjectMembership membership = access.requireManager(project, user);
+        String name = request.name().trim();
+        validateTrimmedName(name);
+        ensureNameAvailable(name, projectId);
+        project.update(name, request.description());
+        return toResponse(project, membership.getRole());
     }
 
     @Transactional
@@ -78,11 +106,28 @@ public class ProjectService {
                 .toList();
     }
 
-    private ApiModels.ProjectResponse toResponse(Project project) {
+    private void ensureNameAvailable(String name, UUID exceptProjectId) {
+        String normalizedName = Project.normalizeName(name);
+        boolean exists = exceptProjectId == null
+                ? projects.existsByNormalizedName(normalizedName)
+                : projects.existsByNormalizedNameAndIdNot(normalizedName, exceptProjectId);
+        if (exists) {
+            throw new ApiException(HttpStatus.CONFLICT, "PROJECT_NAME_ALREADY_EXISTS", "A project with this name already exists.");
+        }
+    }
+
+    private void validateTrimmedName(String name) {
+        if (name.length() < 3) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Project name must contain at least 3 characters.");
+        }
+    }
+
+    private ApiModels.ProjectResponse toResponse(Project project, ProjectRole role) {
         return new ApiModels.ProjectResponse(
                 project.getId(),
                 project.getName(),
                 project.getDescription(),
-                project.getCreatedAt());
+                project.getCreatedAt(),
+                role);
     }
 }

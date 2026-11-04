@@ -6,10 +6,15 @@
 As a user, I want to create a project so that I can organize work around a common goal.
 
 Acceptance criteria:
-- The system allows creating a project with a valid name.
+- The system allows creating a project with a name of 3-100 characters and an optional description of at most 1000 characters.
 - The project is stored and listed correctly.
 - The system rejects creation without a name or with invalid data.
-- The system prevents creating a project with the same name as an existing project.
+- Project names are trimmed and unique without regard to case.
+- An authenticated user's new project is associated with that user as its manager.
+- A project is visible only to users with project membership.
+- A manager can consult, update, and remove an accessible project; members can consult but cannot update or remove it.
+- Projects with tasks cannot be removed; the API reports a conflict rather than orphaning dependent data.
+- The project list can be filtered by a case-insensitive name search.
 
 Edge cases:
 - duplicated project name;

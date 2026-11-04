@@ -42,11 +42,14 @@ The initial MVP documents did not define user accounts, roles, or permissions. F
 
 - users sign in with email/password and a server-side HTTP session for this exercise;
 - each project has a manager and members;
-- a manager can manage the project and its tasks, and assign tasks;
+- the authenticated user who creates a project becomes its manager;
+- a manager can consult, edit, and remove an accessible project, manage its tasks, and assign tasks;
 - a member can view and update tasks and add comments, but cannot manage the project or assign tasks;
 - only active users who are members of the same project are eligible assignees.
 
 This is a user-approved exercise policy, not a pre-existing MVP requirement. The login endpoint issues an HttpOnly session cookie, the profile endpoint returns the authenticated user, and logout invalidates the session. Demo data and integration tests cover manager/member visibility and operation restrictions.
+
+Project names are trimmed and unique case-insensitively. Names must contain 3-100 characters and descriptions may contain up to 1000 characters. Project deletion is rejected with HTTP 409 while tasks exist; memberships are removed only when a task-free project is deleted.
 
 Comments and assignees were not part of the original MVP, but the current exercise explicitly requests their schema, demo data, and user selection. They are implemented as exercise scope extensions; do not treat them as confirmed production requirements.
 
@@ -66,8 +69,7 @@ The system must allow:
 Responsible for the user experience.
 
 Functions:
-- list projects;
-- create projects;
+- list, search, create, consult, edit, and remove projects;
 - open a project and view its tasks;
 - create, edit, and remove tasks;
 - change task status;

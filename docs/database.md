@@ -22,8 +22,9 @@ Represents an initiative or set of work to organize.
 
 Main attributes:
 - id: unique project identifier
-- name: project name
-- description: project description or context
+- name: project name (3-100 characters)
+- normalizedName: trimmed, case-normalized project name used to enforce case-insensitive uniqueness
+- description: project description or context (up to 1000 characters)
 - createdAt: creation date
 
 ### ProjectMembership
@@ -81,6 +82,11 @@ Main attributes:
 ## Business rules and assumptions
 
 - Each project must have a valid name.
+- Project names are trimmed and unique without regard to case.
+- New projects are associated with their authenticated creator as the project manager.
+- Project reads require membership; project edits and removal require the manager role.
+- A project with tasks cannot be removed; the API returns a conflict rather than orphaning dependent records.
+- Project listing can be filtered by name; pagination is not defined by the current API contract.
 - Each task must have a valid title.
 - The task must always belong to an existing project.
 - The MVP does not assume user levels, permissions, deadlines, priorities, or comments yet.
@@ -101,7 +107,8 @@ Main attributes:
 
 Project
 - id (PK)
-- name
+- name (3-100 characters)
+- normalizedName (unique; trimmed and case-normalized)
 - description
 - createdAt
 
@@ -167,6 +174,7 @@ erDiagram
     PROJECT {
         string id PK
         string name
+        string normalizedName UK
         string description
         datetime createdAt
     }

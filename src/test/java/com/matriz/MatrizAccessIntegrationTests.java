@@ -268,6 +268,180 @@ class MatrizAccessIntegrationTests {
     }
 
     @Test
+    void managerCanCreateListSearchConsultAndUpdateProjects() throws Exception {
+        MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
+        String suffix = java.util.UUID.randomUUID().toString();
+        String projectName = "Exercise Project " + suffix;
+
+        MvcResult createdResult = mockMvc.perform(post("/projects")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"  %s  ","description":"Exercise description"}
+                                """.formatted(projectName)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value(projectName))
+                .andExpect(jsonPath("$.role").value("MANAGER"))
+                .andReturn();
+        String projectId = com.jayway.jsonpath.JsonPath.read(
+                createdResult.getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(get("/projects").session(manager).queryParam("q", suffix.toUpperCase()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(projectId));
+
+        mockMvc.perform(get("/projects/{projectId}", projectId).session(manager))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value(projectName))
+                .andExpect(jsonPath("$.description").value("Exercise description"))
+                .andExpect(jsonPath("$.role").value("MANAGER"));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .put("/projects/{projectId}", projectId)
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"matriz demo - alpha","description":"Duplicate"}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PROJECT_NAME_ALREADY_EXISTS"));
+
+        String updatedName = "Updated Exercise " + suffix;
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .put("/projects/{projectId}", projectId)
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"%s","description":"Updated description"}
+                                """.formatted(updatedName)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value(updatedName))
+                .andExpect(jsonPath("$.description").value("Updated description"));
+
+        mockMvc.perform(get("/projects").session(manager).queryParam("q", suffix.toLowerCase()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].name").value(updatedName));
+
+        mockMvc.perform(post("/projects")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"  updated exercise %s  "}
+                                """.formatted(suffix)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PROJECT_NAME_ALREADY_EXISTS"));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/projects")
+                        .session(manager)
+                        .with(csrf())
+                        .queryParam("projectId", projectId))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void projectValidationAndCaseInsensitiveDuplicateNamesAreEnforced() throws Exception {
+        MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
+
+        mockMvc.perform(post("/projects")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"ab"}
+                                """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/projects")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"   "}
+                                """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/projects")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"%s"}
+                                """.formatted("x".repeat(101))))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/projects")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Valid project name","description":"%s"}
+                                """.formatted("x".repeat(1001))))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/projects")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"  matriz demo - alpha  "}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PROJECT_NAME_ALREADY_EXISTS"));
+
+        mockMvc.perform(post("/projects")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":" a "}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void projectDetailsAndMutationsRespectMembershipAndManagerRole() throws Exception {
+        Project alpha = projects.findByName("Matriz Demo - Alpha").orElseThrow();
+        Project beta = projects.findByName("Matriz Demo - Beta").orElseThrow();
+        MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
+        MockHttpSession member = login("member@matriz.local", "test-member-password");
+
+        mockMvc.perform(get("/projects/{projectId}", alpha.getId()).session(member))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("MEMBER"));
+
+        mockMvc.perform(get("/projects/{projectId}", beta.getId()).session(manager))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .put("/projects/{projectId}", alpha.getId())
+                        .session(member)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Unauthorized update","description":null}
+                                """))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/projects")
+                        .session(manager)
+                        .with(csrf())
+                        .queryParam("projectId", alpha.getId().toString()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PROJECT_HAS_TASKS"));
+
+        mockMvc.perform(get("/projects/{projectId}", java.util.UUID.randomUUID()).session(manager))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void demoDataIsPresentAndInitializerDoesNotDuplicateOrDeleteIt() throws Exception {
         assertTrue(users.count() >= 2);
         assertTrue(projects.count() >= 2);
