@@ -1,48 +1,48 @@
-# Matriz - Restrições e pressupostos
+# Matriz - Constraints and assumptions
 
-## Restrições conhecidas
+## Known constraints
 
-- O cliente ainda não definiu detalhadamente as funcionalidades da aplicação.
-- Não existem regras de negócio formalizadas nem critérios de aceitação completos.
-- Não foi definido o tipo de interface da aplicação.
-- Não estão definidos os tipos de utilizadores, permissões e níveis de acesso.
-- Não foi confirmada a necessidade de persistência de dados.
-- Não foi definido o nível de maturidade da solução: MVP ou produto completo.
+- The client has not yet defined the application's features in detail.
+- There are no formalized business rules or complete acceptance criteria.
+- The type of interface has not been defined.
+- User types, permissions, and access levels have not been defined.
+- The need for persistence has not been confirmed.
+- The maturity level of the solution has not been defined: MVP or full product.
 
-## Pressupostos assumidos
+## Assumptions made
 
-Os seguintes pontos são hipóteses de trabalho e não requisitos confirmados:
-- a aplicação será usada por equipas de trabalho para gerir projetos e tarefas;
-- cada projeto terá, em princípio, várias tarefas associadas;
-- as tarefas podem evoluir ao longo do tempo;
-- os utilizadores poderão necessitar de visualizar o estado do trabalho em curso;
-- o MVP irá focar-se no núcleo da gestão de projetos e tarefas.
+The following points are working hypotheses and not confirmed requirements:
+- the application will be used by work teams to manage projects and tasks;
+- each project will, in principle, have several associated tasks;
+- tasks may evolve over time;
+- users may need to view the current status of ongoing work;
+- the MVP will focus on the core of project and task management.
 
-## Riscos e requisitos de segurança e privacidade pendentes de validação
+## Risks and pending security and privacy requirements
 
-Os seguintes aspetos ainda não foram confirmados pelo cliente, mas representam riscos e requisitos a validar antes do desenvolvimento em ambiente real:
-- controlo de acesso aos dados por utilizador ou equipa;
-- proteção de dados sensíveis;
-- validação de entradas para evitar dados inconsistentes;
-- mensagens de erro claras e sem exposição de informação excessiva.
+The following aspects have not yet been confirmed by the client, but they represent risks and requirements to validate before development in a real environment:
+- access control to data by user or team;
+- protection of sensitive data;
+- validation of inputs to avoid inconsistent data;
+- clear error messages without exposing excessive information.
 
-Estes pontos devem ser discutidos com o cliente e confirmados antes de qualquer implementação em ambiente produtivo.
+These points should be discussed with the client and confirmed before any implementation in a production environment.
 
-## Decisões técnicas ainda pendentes
+## Pending technical decisions
 
-- linguagem e framework de desenvolvimento;
-- tipo de interface (web, desktop, mobile ou terminal);
-- tecnologia de armazenamento de dados;
-- nível de autenticação e autorização;
-- modelo de dados para projetos, tarefas e utilizadores;
-- mecanismos de backup, histórico e recuperação.
+- programming language and framework;
+- interface type (web, desktop, mobile, or terminal);
+- data storage technology;
+- authentication and authorization level;
+- data model for projects, tasks, and users;
+- backup, history, and recovery mechanisms.
 
-## Limitações de âmbito
+## Scope limitations
 
-O projeto, nesta fase, deve manter um escopo controlado e focar-se apenas em:
-- criação e gestão de projetos;
-- criação e gestão de tarefas;
-- consulta e atualização de estado;
-- pesquisa simples.
+At this stage, the project should keep a controlled scope and focus only on:
+- creating and managing projects;
+- creating and managing tasks;
+- reading and updating status;
+- simple search.
 
-Funcionalidades mais avançadas, como autenticação, permissões, integrações, relatórios avançados ou gestão de recursos, não fazem parte do escopo atual e devem ser discutidas e validadas em fases posteriores.
+More advanced features such as authentication, permissions, integrations, advanced reports, or resource management are not part of the current scope and should be discussed and validated in later phases.

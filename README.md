@@ -1,38 +1,41 @@
 # Matriz
 
-## Apresentação do projeto
+## Project presentation
 
-A Matriz é uma proposta de aplicação para gestão de projetos e tarefas em equipas de trabalho. O objetivo principal é facilitar a organização do trabalho, melhorar a coordenação da equipa e permitir o acompanhamento do progresso das tarefas e dos projetos.
+Matriz is a proposal for a project and task management application for work teams. The main goal is to facilitate work organization, improve team coordination, and allow monitoring of progress for tasks and projects.
 
-## Problema que pretende resolver
+## Problem it aims to solve
 
-As equipas de trabalho frequentemente precisam de coordenar múltiplos projetos, distribuir tarefas, acompanhar estados e garantir que o trabalho está em curso e organizado. Sem uma ferramenta adequada, a informação pode dispersar-se entre mensagens, documentos e listas manuais, dificultando a gestão e o controlo do progresso.
+Work teams often need to coordinate multiple projects, distribute tasks, track states, and ensure that work is active and organized. Without a suitable tool, information can be scattered across messages, documents, and manual lists, making management and progress control difficult.
 
-## Objetivos principais
+## Main objectives
 
-- organizar projetos por objetivo ou iniciativa;
-- gerir tarefas associadas a cada projeto;
-- acompanhar o estado do trabalho;
-- melhorar a visibilidade da equipa sobre o que está em curso.
+- organize projects by objective or initiative;
+- manage tasks associated with each project;
+- track the status of work;
+- improve the team's visibility into what is in progress.
 
-## Funcionalidades previstas para o MVP
+## Features planned for the MVP
 
-- criação de projetos;
-- criação de tarefas por projeto;
-- listagem de projetos e tarefas;
-- atualização do estado da tarefa;
-- remoção de projetos e tarefas;
-- pesquisa simples por tarefa;
-- visualização geral do trabalho em curso.
+- project creation;
+- task creation per project;
+- project and task listing;
+- task status update;
+- project and task removal;
+- simple task search;
+- general overview of ongoing work.
 
-## Organização da documentação
+## Documentation organization
 
-A documentação do projeto está organizada da seguinte forma:
+The project documentation is organized as follows:
 
-- [docs/requirements.md](docs/requirements.md): visão geral, objetivos, requisitos e âmbito do MVP.
-- [docs/user-stories.md](docs/user-stories.md): user stories, critérios de aceitação e casos excecionais.
-- [docs/constraints.md](docs/constraints.md): restrições, pressupostos e limitações de âmbito.
+- [docs/requirements.md](docs/requirements.md): overview, goals, requirements, and scope of the MVP.
+- [docs/user-stories.md](docs/user-stories.md): user stories, acceptance criteria, and edge cases.
+- [docs/constraints.md](docs/constraints.md): constraints, assumptions, and scope limitations.
+- [docs/architecture.md](docs/architecture.md): simplified architecture pack aligned with the MVP.
+- [docs/database.md](docs/database.md): MVP data model.
+- [docs/ui/wireframe.png](docs/ui/wireframe.png): visual prototype of the MVP project and task management flow.
 
-## Estado atual do projeto
+## Current project status
 
-O projeto está atualmente em fase de análise e especificação. Ainda não foi implementado código nem foi definida a tecnologia final. O foco atual é a clarificação do problema, definição do MVP e preparação do contexto para a próxima fase de desenvolvimento.
+The project is currently in the analysis and specification phase. No code has been implemented yet and no final technology has been defined. The current focus is clarifying the problem, defining the MVP, and preparing the context for the next development phase.

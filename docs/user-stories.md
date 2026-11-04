@@ -1,89 +1,89 @@
 # Matriz - User Stories
 
-## User Stories do MVP
+## User stories for the MVP
 
 ### US-01
-Como utilizador, quero criar um projeto, para organizar o trabalho em torno de um objetivo comum.
+As a user, I want to create a project so that I can organize work around a common goal.
 
-Critérios de aceitação:
-- O sistema permite criar um projeto com nome válido.
-- O projeto é armazenado e listado corretamente.
-- O sistema rejeita criação sem nome ou com dados inválidos.
-- O sistema impede a criação de um projeto com o mesmo nome de um projeto já existente.
+Acceptance criteria:
+- The system allows creating a project with a valid name.
+- The project is stored and listed correctly.
+- The system rejects creation without a name or with invalid data.
+- The system prevents creating a project with the same name as an existing project.
 
-Casos excecionais:
-- projeto com nome duplicado;
-- projeto sem nome;
-- tentativa de criar projeto com dados vazios.
+Edge cases:
+- duplicated project name;
+- project without a name;
+- attempt to create a project with empty data.
 
 ### US-02
-Como utilizador, quero adicionar tarefas a um projeto, para distribuir o trabalho necessário para atingir os objetivos definidos.
+As a user, I want to add tasks to a project so that I can distribute the necessary work to achieve the defined goals.
 
-Critérios de aceitação:
-- O sistema permite criar uma tarefa associada a um projeto existente.
-- O sistema rejeita tarefas sem título ou com dados mínimos inválidos.
-- A tarefa aparece na lista de tarefas do projeto correto.
-- A tarefa deve permanecer associada ao projeto correto após a criação.
+Acceptance criteria:
+- The system allows creating a task associated with an existing project.
+- The system rejects tasks without a title or with invalid minimum data.
+- The task appears in the task list for the correct project.
+- The task must remain associated with the correct project after creation.
 
-Casos excecionais:
-- projeto inexistente;
-- tarefa sem título;
-- tarefa criada para projeto não selecionado ou inválido.
+Edge cases:
+- non-existent project;
+- task without a title;
+- task created for an unselected or invalid project.
 
 ### US-03
-Como utilizador, quero visualizar os projetos e as tarefas associadas, para conhecer o trabalho em curso e o seu estado atual.
+As a user, I want to view projects and their associated tasks so that I can know the work in progress and its current status.
 
-Critérios de aceitação:
-- O sistema apresenta a lista de projetos disponíveis.
-- Ao selecionar um projeto, o sistema apresenta as tarefas associadas.
-- Cada tarefa apresentada deve mostrar o seu estado atual, com um valor permitido pela definição do sistema.
+Acceptance criteria:
+- The system displays the list of available projects.
+- When selecting a project, the system displays its associated tasks.
+- Each displayed task must show its current status using a value allowed by the system definition.
 
-Casos excecionais:
-- lista de projetos vazia;
-- projeto sem tarefas;
-- projeto inexistente ao consultar detalhes.
+Edge cases:
+- empty project list;
+- project without tasks;
+- non-existent project when consulting details.
 
 ### US-04
-Como utilizador, quero atualizar o estado de uma tarefa, para refletir o progresso real do trabalho.
+As a user, I want to update the status of a task so that it reflects the real progress of the work.
 
-Critérios de aceitação:
-- O sistema permite alterar o estado da tarefa para um valor válido.
-- A atualização é refletida imediatamente na apresentação da tarefa.
-- O sistema rejeita valores inválidos ou desconhecidos.
+Acceptance criteria:
+- The system allows changing the task status to a valid value.
+- The update is reflected immediately in the task presentation.
+- The system rejects invalid or unknown values.
 
-Casos excecionais:
-- tentativa de atualizar tarefa inexistente;
-- estado não suportado;
-- alteração de tarefa em projeto inexistente.
+Edge cases:
+- attempt to update a non-existent task;
+- unsupported status;
+- updating a task in a non-existent project.
 
 ### US-05
-Como utilizador, quero remover um projeto ou uma tarefa, para manter o espaço de trabalho organizado e alinhado com o contexto atual.
+As a user, I want to remove a project or a task to keep the workspace organized and aligned with the current context.
 
-Critérios de aceitação:
-- O sistema elimina o projeto ou tarefa apenas após confirmação do utilizador.
-- O sistema informa o utilizador quando a ação não é possível.
-- A remoção não deve afetar outros projetos ou tarefas sem confirmação explícita.
+Acceptance criteria:
+- The system only removes the project or task after user confirmation.
+- The system informs the user when the action is not possible.
+- Removal must not affect other projects or tasks without explicit confirmation.
 
-Casos excecionais:
-- tentativa de remover tarefa inexistente;
-- tentativa de remover projeto inexistente;
-- operação sem confirmação por parte do utilizador.
+Edge cases:
+- attempt to remove a non-existent task;
+- attempt to remove a non-existent project;
+- operation without user confirmation.
 
 ### US-06
-Como utilizador, quero procurar tarefas por palavra-chave, para encontrar rapidamente o trabalho relevante.
+As a user, I want to search for tasks by keyword to quickly find the relevant work.
 
-Critérios de aceitação:
-- O sistema permite procurar por termo de texto.
-- Os resultados apresentam tarefas que correspondem à pesquisa.
-- Se não existir correspondência, o sistema informa claramente que não encontrou resultados.
+Acceptance criteria:
+- The system allows searching by text term.
+- Results display tasks matching the search.
+- If there are no matches, the system clearly informs the user that no results were found.
 
-Casos excecionais:
-- pesquisa vazia;
-- termo sem correspondência;
-- múltiplos resultados com similaridade parcial.
+Edge cases:
+- empty search;
+- term with no match;
+- multiple results with partial similarity.
 
-## Critérios gerais de aceitação
+## General acceptance criteria
 
-- Cada User Story deve ser verificável de forma objetiva.
-- Cada funcionalidade deve ter um comportamento claro em caso de erro.
-- O backlog deve manter apenas requisitos confirmados e relevantes para o MVP.
+- Each user story must be objectively verifiable.
+- Each feature must have a clear behavior in case of error.
+- The backlog must contain only confirmed and relevant requirements for the MVP.

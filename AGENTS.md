@@ -1,49 +1,49 @@
 # AGENTS.md
 
-## Objetivo do projeto
+## Project objective
 
-Matriz é uma aplicação para gestão de projetos e tarefas em equipas de trabalho. O objetivo do projeto, nesta fase, é apoiar a organização do trabalho, o acompanhamento do progresso e a coordenação entre membros da equipa.
+Matriz is an application for managing projects and tasks in work teams. The objective of the project at this stage is to support work organization, track progress, and coordinate among team members.
 
-## Regras gerais
+## General rules
 
-- Ler e respeitar a documentação do projeto antes de qualquer alteração.
-- Consultar, pelo menos, os ficheiros relevantes de requisitos, histórias de utilizador e restrições.
-- Não inventar funcionalidades, regras de negócio, tecnologias ou decisões que não estejam documentadas e aprovadas.
-- Não assumir requisitos que não tenham sido confirmados pelo cliente.
-- Manter o escopo da tarefa alinhado com o objetivo do projeto e com o MVP definido.
-- Evitar alterações fora do âmbito da tarefa.
-- Se uma tarefa exigir decisões não documentadas, pedir confirmação antes de prosseguir.
+- Read and respect the project documentation before making changes.
+- Consult at least the relevant requirement, user story, and constraint files.
+- Do not invent functionalities, business rules, technologies, or decisions that are not documented and approved.
+- Do not assume requirements that have not been confirmed by the client.
+- Keep the task scope aligned with the project objective and the defined MVP.
+- Avoid changes outside the task scope.
+- If a task requires undocumented decisions, ask for confirmation before proceeding.
 
-## Procedimento recomendado antes de alterar o código
+## Recommended procedure before changing code
 
-1. Identificar a tarefa e o impacto esperado.
-2. Consultar a documentação relevante em `docs/` e no `README.md`.
-3. Verificar o contexto funcional, restrições e pressupostos antes de qualquer mudança.
-4. Apresentar um plano breve antes de executar alterações significativas.
-5. Executar apenas as mudanças necessárias para cumprir a tarefa.
-6. Validar a qualidade, consistência e alinhamento com a documentação.
+1. Identify the task and expected impact.
+2. Consult the relevant documentation in `docs/` and in `README.md`.
+3. Verify functional context, constraints, and assumptions before any change.
+4. Present a brief plan before making significant changes.
+5. Make only the changes necessary to complete the task.
+6. Validate quality, consistency, and alignment with the documentation.
 
-## Regras de segurança e confidencialidade
+## Security and confidentiality rules
 
-- Não expor credenciais, tokens, segredos, chaves ou informação sensível.
-- Não introduzir logs, ficheiros temporários ou dados confidenciais no repositório.
-- Solicitar confirmação antes de ações destrutivas, como remoção de ficheiros importantes, resets, alterações em documentação crítica ou alterações que afetem a estrutura do projeto.
-- Manter uma abordagem responsável e mínima em todas as operações.
+- Do not expose credentials, tokens, secrets, keys, or sensitive information.
+- Do not introduce logs, temporary files, or confidential data into the repository.
+- Ask for confirmation before destructive actions such as deleting important files, resets, changes to critical documentation, or modifications that affect project structure.
+- Maintain a responsible and minimal approach to all operations.
 
-## Comunicação esperada
+## Expected communication
 
-- Explicar pressupostos quando estes forem necessários.
-- Indicar claramente quando uma decisão foi assumida por falta de confirmação.
-- Comunicar alterações realizadas, verificações efetuadas e resultados obtidos.
-- Se houver ambiguidades, pedir clarificação em vez de assumir uma solução.
+- Explain assumptions when needed.
+- Clearly indicate when a decision was assumed due to lack of confirmation.
+- Communicate changes made, checks performed, and results obtained.
+- If there are ambiguities, ask for clarification instead of assuming a solution.
 
-## Limites de escopo
+## Scope limits
 
-- O foco atual é a análise e especificação do projeto.
-- Não implementar funcionalidades fora do MVP, a menos que haja aprovação explícita.
-- Não propor tecnologias ou arquitetura detalhada sem documentação prévia.
-- Não alterar documentos de requisitos, histórias de utilizador ou restrições sem justificação clara e alinhamento com o contexto do projeto.
+- The current focus is project analysis and specification.
+- Do not implement features outside the MVP without explicit approval.
+- Do not propose technologies or detailed architecture without prior documentation.
+- Do not change requirement documents, user stories, or constraints without a clear justification and alignment with the project context.
 
-## Resultado esperado
+## Expected outcome
 
-Os agentes devem trabalhar de forma consistente com o contexto do projeto, respeitando a documentação, evitando decisões não aprovadas e mantendo o repositório sustentável para as próximas fases de desenvolvimento.
+Agents must work consistently with the project context, respect the documentation, avoid unapproved decisions, and maintain the repository sustainable for the next phases of development.
