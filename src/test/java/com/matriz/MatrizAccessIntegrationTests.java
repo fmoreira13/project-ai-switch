@@ -25,8 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -100,10 +102,10 @@ class MatrizAccessIntegrationTests {
                         .queryParam("taskId", task.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"status":"review"}
+                                {"status":"IN_PROGRESS"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("review"));
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
 
         mockMvc.perform(post("/tasks/{taskId}/comments", task.getId())
                         .session(member)
@@ -439,6 +441,163 @@ class MatrizAccessIntegrationTests {
 
         mockMvc.perform(get("/projects/{projectId}", java.util.UUID.randomUUID()).session(manager))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void taskCrudFiltersValidationAndCountsFollowMvpContract() throws Exception {
+        Project alpha = projects.findByName("Matriz Demo - Alpha").orElseThrow();
+        MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
+        String title = "Ship task " + java.util.UUID.randomUUID();
+
+        MvcResult created = mockMvc.perform(post("/tasks")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"projectId":"%s","title":"  %s  ","description":"Task description"}
+                                """.formatted(alpha.getId(), title)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value(title))
+                .andExpect(jsonPath("$.status").value("TODO"))
+                .andExpect(jsonPath("$.priority").value("MEDIUM"))
+                .andReturn();
+        String taskId = com.jayway.jsonpath.JsonPath.read(
+                created.getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(get("/tasks/{taskId}", taskId).session(manager))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(taskId));
+
+        mockMvc.perform(get("/tasks")
+                        .session(manager)
+                        .queryParam("projectId", alpha.getId().toString())
+                        .queryParam("q", title)
+                        .queryParam("status", "TODO")
+                        .queryParam("priority", "MEDIUM"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(taskId))
+                .andExpect(jsonPath("$.counts.total").isNumber())
+                .andExpect(jsonPath("$.counts.todo").isNumber())
+                .andExpect(jsonPath("$.counts.inProgress").isNumber())
+                .andExpect(jsonPath("$.counts.done").isNumber());
+
+        mockMvc.perform(put("/tasks/{taskId}/assignee", taskId)
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"assigneeEmail":"member@matriz.local"}
+                                """))
+                .andExpect(status().isOk());
+        MockHttpSession member = login("member@matriz.local", "test-member-password");
+        mockMvc.perform(post("/tasks/{taskId}/comments", taskId)
+                        .session(member)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"body":"Task deletion cleanup check"}
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(put("/tasks/{taskId}", taskId)
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Updated task title","description":null,"status":"DONE","priority":"LOW"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.description").doesNotExist())
+                .andExpect(jsonPath("$.status").value("DONE"))
+                .andExpect(jsonPath("$.priority").value("LOW"))
+                .andExpect(jsonPath("$.completedAt").isNotEmpty());
+
+        mockMvc.perform(get("/tasks")
+                        .session(manager)
+                        .queryParam("projectId", alpha.getId().toString())
+                        .queryParam("status", "DONE")
+                        .queryParam("priority", "LOW"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.id == '%s')]".formatted(taskId)).exists());
+
+        mockMvc.perform(delete("/tasks/{taskId}", taskId)
+                        .session(manager)
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+        assertTrue(assignments.findByTask_Id(java.util.UUID.fromString(taskId)).isEmpty());
+        assertTrue(comments.findAllByTask_IdOrderByCreatedAtAsc(java.util.UUID.fromString(taskId)).isEmpty());
+        mockMvc.perform(get("/tasks/{taskId}", taskId).session(manager))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(post("/tasks")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"projectId":"%s","title":"   "}
+                                """.formatted(alpha.getId())))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/tasks")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"projectId":"%s","title":" a "}
+                                """.formatted(alpha.getId())))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/tasks")
+                        .session(manager)
+                        .queryParam("projectId", alpha.getId().toString())
+                        .queryParam("status", "UNKNOWN"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_PARAMETER"));
+    }
+
+    @Test
+    void taskTitleAndDescriptionHonorExactLengthBoundaries() throws Exception {
+        Project alpha = projects.findByName("Matriz Demo - Alpha").orElseThrow();
+        MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
+        String title = "T".repeat(150);
+        String description = "D".repeat(2000);
+
+        MvcResult accepted = mockMvc.perform(post("/tasks")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"projectId":"%s","title":"%s","description":"%s"}
+                                """.formatted(alpha.getId(), title, description)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String taskId = com.jayway.jsonpath.JsonPath.read(
+                accepted.getResponse().getContentAsString(), "$.id");
+        assertEquals(150, ((String) com.jayway.jsonpath.JsonPath.read(
+                accepted.getResponse().getContentAsString(), "$.title")).length());
+        assertEquals(2000, ((String) com.jayway.jsonpath.JsonPath.read(
+                accepted.getResponse().getContentAsString(), "$.description")).length());
+
+        mockMvc.perform(delete("/tasks/{taskId}", taskId)
+                        .session(manager)
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/tasks")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"projectId":"%s","title":"%s"}
+                                """.formatted(alpha.getId(), "T".repeat(151))))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/tasks")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"projectId":"%s","title":"Valid title","description":"%s"}
+                                """.formatted(alpha.getId(), "D".repeat(2001))))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

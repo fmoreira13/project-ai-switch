@@ -7,6 +7,7 @@ import com.matriz.domain.ProjectRole;
 import com.matriz.domain.Task;
 import com.matriz.domain.TaskAssignment;
 import com.matriz.domain.TaskComment;
+import com.matriz.domain.TaskPriority;
 import com.matriz.domain.TaskStatus;
 import com.matriz.repository.ProjectMembershipRepository;
 import com.matriz.repository.ProjectRepository;
@@ -56,12 +57,14 @@ public class DemoDataInitializer {
                     .filter(task -> task.getProject().getId().equals(alpha.getId()))
                     .findFirst()
                     .orElseGet(() -> tasks.save(new Task(
-                            alpha, "Prepare MVP demo", "Seed task for access and assignment checks.", TaskStatus.in_progress)));
+                            alpha, "Prepare MVP demo", "Seed task for access and assignment checks.",
+                            TaskStatus.IN_PROGRESS, TaskPriority.MEDIUM)));
             Task betaTask = tasks.findAll().stream()
                     .filter(task -> task.getProject().getId().equals(beta.getId()))
                     .findFirst()
                     .orElseGet(() -> tasks.save(new Task(
-                            beta, "Review project setup", "Seed task for project-scoped visibility checks.", TaskStatus.backlog)));
+                            beta, "Review project setup", "Seed task for project-scoped visibility checks.",
+                            TaskStatus.TODO, TaskPriority.MEDIUM)));
 
             if (assignments.findByTask_Id(alphaTask.getId()).isEmpty()) {
                 assignments.save(new TaskAssignment(alphaTask, member, manager));

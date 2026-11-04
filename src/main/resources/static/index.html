@@ -65,6 +65,57 @@
                         <button id="cancel-edit" type="button" class="secondary">Cancel</button>
                     </div>
                 </form>
+                <section id="tasks-panel" class="tasks-panel" aria-labelledby="tasks-heading">
+                    <div class="section-heading">
+                        <h3 id="tasks-heading">Tasks</h3>
+                        <button id="new-task" type="button">New task</button>
+                    </div>
+                    <p id="task-counts" class="muted" aria-live="polite"></p>
+                    <form id="task-filter-form" class="task-filters">
+                        <label for="task-search">Search tasks</label>
+                        <input id="task-search" name="q" type="search" maxlength="200">
+                        <label for="task-status-filter">Status</label>
+                        <select id="task-status-filter" name="status">
+                            <option value="">All statuses</option>
+                            <option value="TODO">To do</option>
+                            <option value="IN_PROGRESS">In progress</option>
+                            <option value="DONE">Done</option>
+                        </select>
+                        <label for="task-priority-filter">Priority</label>
+                        <select id="task-priority-filter" name="priority">
+                            <option value="">All priorities</option>
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                        </select>
+                        <button type="submit" class="secondary">Filter</button>
+                    </form>
+                    <p id="empty-tasks" class="muted" hidden>No tasks found.</p>
+                    <ul id="task-list" class="task-list" aria-label="Project tasks"></ul>
+                    <form id="create-task-form" class="task-form" hidden>
+                        <h4>Create a task</h4>
+                        <label for="create-task-title">Title</label>
+                        <input id="create-task-title" name="title" minlength="3" maxlength="150" required>
+                        <label for="create-task-description">Description</label>
+                        <textarea id="create-task-description" name="description" maxlength="2000" rows="3"></textarea>
+                        <label for="create-task-status">Status</label>
+                        <select id="create-task-status" name="status">
+                            <option value="TODO">To do</option>
+                            <option value="IN_PROGRESS">In progress</option>
+                            <option value="DONE">Done</option>
+                        </select>
+                        <label for="create-task-priority">Priority</label>
+                        <select id="create-task-priority" name="priority">
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM" selected>Medium</option>
+                            <option value="HIGH">High</option>
+                        </select>
+                        <div class="form-actions">
+                            <button type="submit">Create task</button>
+                            <button id="cancel-create-task" type="button" class="secondary">Cancel</button>
+                        </div>
+                    </form>
+                </section>
             </section>
             <section id="welcome" class="card">
                 <h2>Manage your projects</h2>

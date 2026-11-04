@@ -42,11 +42,12 @@ Represents a unit of work associated with a project.
 Main attributes:
 - id: unique task identifier
 - projectId: reference to the owning project
-- title: task title
-- description: task description
-- status: current task status, using the allowed MVP values (backlog, in_progress, review, done, cancelled)
+- title: required task title (3-150 characters)
+- description: optional task description (up to 2000 characters)
+- status: TODO, IN_PROGRESS, or DONE; defaults to TODO
+- priority: LOW, MEDIUM, or HIGH; defaults to MEDIUM
 - createdAt: creation date
-- completedAt: completion date, when applicable
+- completedAt: set when the task enters DONE, otherwise null
 
 ### TaskAssignment
 Records the active assignee for a task and the manager who made the assignment.
@@ -88,9 +89,13 @@ Main attributes:
 - A project with tasks cannot be removed; the API returns a conflict rather than orphaning dependent records.
 - Project listing can be filtered by name; pagination is not defined by the current API contract.
 - Each task must have a valid title.
+- Titles containing only whitespace are rejected; surrounding whitespace is trimmed before storing.
 - The task must always belong to an existing project.
-- The MVP does not assume user levels, permissions, deadlines, priorities, or comments yet.
-- The system must allow task status updates.
+- Task titles are limited to 150 characters and descriptions to 2000 characters.
+- The MVP task status values are TODO, IN_PROGRESS, and DONE; priority values are LOW, MEDIUM, and HIGH.
+- Task lists can be filtered by text, status, and priority; the API does not define pagination.
+- Task-list counts describe all accessible tasks before item filters are applied.
+- The system must allow authorized task updates and manager-only deletion.
 - Removing a project or task must require user confirmation.
 - A project has project-scoped managers and members for this implementation exercise.
 - Managers can manage the project and its tasks, assign tasks, and list eligible project members.
@@ -131,7 +136,8 @@ Task
 - projectId (FK)
 - title
 - description
-- status
+- status (TODO, IN_PROGRESS, DONE; default TODO)
+- priority (LOW, MEDIUM, HIGH; default MEDIUM)
 - createdAt
 - completedAt
 
@@ -185,6 +191,7 @@ erDiagram
         string title
         string description
         string status
+        string priority
         datetime createdAt
         datetime completedAt
     }
@@ -217,9 +224,11 @@ erDiagram
 
 The database model is aligned with [openapi.yaml](../openapi.yaml):
 - Project has `id`, `name`, `description`, and `createdAt`.
-- Task has `id`, `projectId`, `title`, `description`, `status`, `createdAt`, and `completedAt`.
+- Task has `id`, `projectId`, `title`, `description`, `status`, `priority`, `createdAt`, and `completedAt`.
+
+The schema script upgrades the previous task status values in place: `backlog` becomes `TODO`, `in_progress` becomes `IN_PROGRESS`, and `done` becomes `DONE`. Legacy `review` and `cancelled` values have no approved equivalent in the MVP; if either exists, the new status constraint intentionally prevents startup rather than silently changing its meaning. Resolve such records explicitly before restarting.
 - The task relationship with the project is represented by `projectId`.
-- The task status values match the API enum: `backlog`, `in_progress`, `review`, `done`, `cancelled`.
+- The task status and priority values match the API enums: `TODO`, `IN_PROGRESS`, `DONE` and `LOW`, `MEDIUM`, `HIGH`.
 - User, project-member selection, task-comment, and task-assignment operations are included for this implementation exercise.
 - API authentication uses the session cookie issued by `POST /auth/login`; access to projects and tasks is checked against project memberships.
 - Project ownership and comment authorship are derived from the authenticated user and are not accepted as client-supplied identity.

@@ -241,7 +241,10 @@ paths:
   /tasks:
     get:
       summary: List or search tasks
-      description: Returns tasks for a project or results from free-text search.
+      description: >-
+        Returns unpaginated tasks accessible to the authenticated user. Optional status and
+        priority filters affect items; counts always describe the full accessible task set
+        before text, status, or priority filters are applied.
       operationId: listOrSearchTasks
       tags:
         - Tasks
@@ -259,6 +262,16 @@ paths:
           schema:
             type: string
           description: Free-text search term.
+        - in: query
+          name: status
+          required: false
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+        - in: query
+          name: priority
+          required: false
+          schema:
+            $ref: '#/components/schemas/TaskPriority'
       responses:
         '200':
           description: Operation successful.
@@ -304,8 +317,9 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
     patch:
-      summary: Update task
-      description: Updates basic fields or the task status.
+      summary: Partially update a task
+      description: Legacy compatibility endpoint. Use PUT /tasks/{taskId} for task edits.
+      deprecated: true
       operationId: updateTask
       tags:
         - Tasks
@@ -340,20 +354,81 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
-    delete:
-      summary: Remove task
-      description: Removes a task after user confirmation.
-      operationId: deleteTask
+  /tasks/{taskId}:
+    get:
+      summary: Get task details
+      description: Returns a task if the authenticated user is a member of its project.
+      operationId: getTask
       tags:
         - Tasks
       parameters:
-        - in: query
+        - in: path
           name: taskId
           required: true
           schema:
             type: string
             format: uuid
           description: Task identifier.
+      responses:
+        '200':
+          description: Task details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Replace task details
+      description: Updates the task title, description, status, and priority. Project members may update tasks.
+      operationId: replaceTask
+      tags:
+        - Tasks
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceTaskRequest'
+      responses:
+        '200':
+          description: Task updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Remove task
+      description: Removes a task and its dependent comments and assignment after user confirmation. Only project managers may remove tasks.
+      operationId: deleteTask
+      tags:
+        - Tasks
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '204':
           description: Task removed successfully.
@@ -363,8 +438,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
   /projects/{projectId}/members:
     get:
       summary: List eligible project members
@@ -584,6 +657,7 @@ components:
         - projectId
         - title
         - status
+        - priority
         - createdAt
       properties:
         id:
@@ -594,13 +668,16 @@ components:
           format: uuid
         title:
           type: string
-          minLength: 1
-          maxLength: 200
+          minLength: 3
+          maxLength: 150
+          description: Must contain 3-150 non-whitespace characters; surrounding whitespace is trimmed before storage.
         description:
           type: [string, 'null']
+          maxLength: 2000
         status:
-          type: string
-          enum: [backlog, in_progress, review, done, cancelled]
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
         createdAt:
           type: string
           format: date-time
@@ -653,28 +730,55 @@ components:
           format: uuid
         title:
           type: string
-          minLength: 1
-          maxLength: 200
+          minLength: 3
+          maxLength: 150
+          description: Must contain 3-150 non-whitespace characters; surrounding whitespace is trimmed before storage.
         description:
           type: [string, 'null']
-          maxLength: 1000
+          maxLength: 2000
         status:
-          type: string
-          enum: [backlog, in_progress, review, done, cancelled]
-          default: backlog
+          $ref: '#/components/schemas/TaskStatus'
+          default: TODO
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+          default: MEDIUM
     UpdateTaskRequest:
       type: object
       properties:
         title:
           type: string
-          minLength: 1
-          maxLength: 200
+          minLength: 3
+          maxLength: 150
+          description: Must contain 3-150 non-whitespace characters; surrounding whitespace is trimmed before storage.
         description:
           type: [string, 'null']
-          maxLength: 1000
+          maxLength: 2000
         status:
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+    ReplaceTaskRequest:
+      type: object
+      required: [title, status, priority]
+      properties:
+        title:
           type: string
-          enum: [backlog, in_progress, review, done, cancelled]
+          minLength: 3
+          maxLength: 150
+          description: Must contain 3-150 non-whitespace characters; surrounding whitespace is trimmed before storage.
+        description:
+          type: [string, 'null']
+          maxLength: 2000
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+    TaskStatus:
+      type: string
+      enum: [TODO, IN_PROGRESS, DONE]
+    TaskPriority:
+      type: string
+      enum: [LOW, MEDIUM, HIGH]
     Comment:
       type: object
       required: [id, taskId, authorId, authorName, body, createdAt]
@@ -744,11 +848,28 @@ components:
       type: object
       required:
         - items
+        - counts
       properties:
         items:
           type: array
           items:
             $ref: '#/components/schemas/Task'
+        counts:
+          type: object
+          required: [total, todo, inProgress, done]
+          properties:
+            total:
+              type: integer
+              minimum: 0
+            todo:
+              type: integer
+              minimum: 0
+            inProgress:
+              type: integer
+              minimum: 0
+            done:
+              type: integer
+              minimum: 0
     Error:
       type: object
       required:

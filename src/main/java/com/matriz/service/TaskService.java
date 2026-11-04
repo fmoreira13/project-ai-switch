@@ -6,6 +6,7 @@ import com.matriz.domain.Project;
 import com.matriz.domain.Task;
 import com.matriz.domain.TaskAssignment;
 import com.matriz.domain.TaskComment;
+import com.matriz.domain.TaskPriority;
 import com.matriz.domain.TaskStatus;
 import com.matriz.repository.ProjectMembershipRepository;
 import com.matriz.repository.TaskAssignmentRepository;
@@ -44,7 +45,12 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
-    public List<ApiModels.TaskResponse> list(String email, UUID projectId, String query) {
+    public ApiModels.TaskListResponse list(
+            String email,
+            UUID projectId,
+            String query,
+            TaskStatus status,
+            TaskPriority priority) {
         AppUser user = access.requireUser(email);
         List<UUID> projectIds = memberships.findAllByUser_Id(user.getId()).stream()
                 .map(membership -> membership.getProject().getId())
@@ -59,13 +65,30 @@ public class TaskService {
         }
 
         String normalizedQuery = query == null ? "" : query.trim().toLowerCase();
-        return tasks.findAllByProject_IdInOrderByCreatedAtDesc(projectIds).stream()
+        List<Task> allTasks = tasks.findAllByProject_IdInOrderByCreatedAtDesc(projectIds);
+        ApiModels.TaskCounts counts = new ApiModels.TaskCounts(
+                allTasks.size(),
+                allTasks.stream().filter(task -> task.getStatus() == TaskStatus.TODO).count(),
+                allTasks.stream().filter(task -> task.getStatus() == TaskStatus.IN_PROGRESS).count(),
+                allTasks.stream().filter(task -> task.getStatus() == TaskStatus.DONE).count());
+        List<ApiModels.TaskResponse> items = allTasks.stream()
                 .filter(task -> normalizedQuery.isEmpty()
                         || task.getTitle().toLowerCase().contains(normalizedQuery)
                         || (task.getDescription() != null
                         && task.getDescription().toLowerCase().contains(normalizedQuery)))
+                .filter(task -> status == null || task.getStatus() == status)
+                .filter(task -> priority == null || task.getPriority() == priority)
                 .map(this::toResponse)
                 .toList();
+        return new ApiModels.TaskListResponse(items, counts);
+    }
+
+    @Transactional(readOnly = true)
+    public ApiModels.TaskResponse get(String email, UUID taskId) {
+        AppUser user = access.requireUser(email);
+        Task task = access.requireTask(taskId);
+        access.requireTaskMembership(task, user);
+        return toResponse(task);
     }
 
     @Transactional
@@ -73,8 +96,10 @@ public class TaskService {
         AppUser user = access.requireUser(email);
         Project project = access.requireProject(request.projectId());
         access.requireManager(project, user);
-        TaskStatus status = request.status() == null ? TaskStatus.backlog : request.status();
-        Task task = tasks.save(new Task(project, request.title().trim(), request.description(), status));
+        String title = requireValidTitle(request.title());
+        TaskStatus status = request.status() == null ? TaskStatus.TODO : request.status();
+        TaskPriority priority = request.priority() == null ? TaskPriority.MEDIUM : request.priority();
+        Task task = tasks.save(new Task(project, title, request.description(), status, priority));
         return toResponse(task);
     }
 
@@ -83,10 +108,28 @@ public class TaskService {
         AppUser user = access.requireUser(email);
         Task task = access.requireTask(taskId);
         access.requireTaskMembership(task, user);
-        if (request.title() == null && request.description() == null && request.status() == null) {
+        if (request.title() == null && request.description() == null
+                && request.status() == null && request.priority() == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "EMPTY_UPDATE", "At least one task field must be provided.");
         }
-        task.update(request.title() == null ? null : request.title().trim(), request.description(), request.status());
+        task.update(
+                request.title() == null ? null : requireValidTitle(request.title()),
+                request.description(),
+                request.status(),
+                request.priority());
+        return toResponse(task);
+    }
+
+    @Transactional
+    public ApiModels.TaskResponse replace(String email, UUID taskId, ApiModels.ReplaceTaskRequest request) {
+        AppUser user = access.requireUser(email);
+        Task task = access.requireTask(taskId);
+        access.requireTaskMembership(task, user);
+        task.replace(
+                requireValidTitle(request.title()),
+                request.description(),
+                request.status(),
+                request.priority());
         return toResponse(task);
     }
 
@@ -158,9 +201,21 @@ public class TaskService {
                 task.getTitle(),
                 task.getDescription(),
                 task.getStatus(),
+                task.getPriority(),
                 task.getCreatedAt(),
                 task.getCompletedAt(),
                 assignee);
+    }
+
+    private String requireValidTitle(String title) {
+        String normalized = title.strip();
+        if (normalized.length() < 3) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Task title must contain at least 3 non-whitespace characters.");
+        }
+        return normalized;
     }
 
     private ApiModels.CommentResponse toCommentResponse(TaskComment comment) {

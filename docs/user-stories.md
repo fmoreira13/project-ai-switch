@@ -25,10 +25,13 @@ Edge cases:
 As a user, I want to add tasks to a project so that I can distribute the necessary work to achieve the defined goals.
 
 Acceptance criteria:
-- The system allows creating a task associated with an existing project.
-- The system rejects tasks without a title or with invalid minimum data.
+- A project manager can create a task associated with an existing project.
+- The title is required, contains 3-150 non-whitespace characters, and is trimmed before storage.
+- The optional description is limited to 2000 characters.
+- New tasks default to status `TODO` and priority `MEDIUM`; accepted values are `TODO`, `IN_PROGRESS`, `DONE` and `LOW`, `MEDIUM`, `HIGH`.
 - The task appears in the task list for the correct project.
 - The task must remain associated with the correct project after creation.
+- Project members can consult and update tasks; only project managers can create or remove them.
 
 Edge cases:
 - non-existent project;
@@ -42,6 +45,8 @@ Acceptance criteria:
 - The system displays the list of available projects.
 - When selecting a project, the system displays its associated tasks.
 - Each displayed task must show its current status using a value allowed by the system definition.
+- Task lists can be filtered by text, status, and priority; task counts update after each operation.
+- The current task-list contract is unpaginated.
 
 Edge cases:
 - empty project list;
@@ -52,7 +57,8 @@ Edge cases:
 As a user, I want to update the status of a task so that it reflects the real progress of the work.
 
 Acceptance criteria:
-- The system allows changing the task status to a valid value.
+- A project member can update task title, description, status, and priority.
+- The system allows changing the task status to `TODO`, `IN_PROGRESS`, or `DONE` and priority to `LOW`, `MEDIUM`, or `HIGH`.
 - The update is reflected immediately in the task presentation.
 - The system rejects invalid or unknown values.
 
@@ -79,6 +85,7 @@ As a user, I want to search for tasks by keyword to quickly find the relevant wo
 
 Acceptance criteria:
 - The system allows searching by text term.
+- The system allows filtering by status and priority in the same list request.
 - Results display tasks matching the search.
 - If there are no matches, the system clearly informs the user that no results were found.
 

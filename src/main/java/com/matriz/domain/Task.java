@@ -22,15 +22,19 @@ public class Task {
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false, length = 150)
     private String title;
 
-    @Column(length = 1000)
+    @Column(length = 2000)
     private String description;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private TaskStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "priority", nullable = false, length = 10)
+    private TaskPriority priority;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -41,14 +45,15 @@ public class Task {
     protected Task() {
     }
 
-    public Task(Project project, String title, String description, TaskStatus status) {
+    public Task(Project project, String title, String description, TaskStatus status, TaskPriority priority) {
         this.id = UUID.randomUUID();
         this.project = project;
         this.title = title;
         this.description = description;
         this.status = status;
+        this.priority = priority;
         this.createdAt = Instant.now();
-        this.completedAt = status == TaskStatus.done ? this.createdAt : null;
+        this.completedAt = status == TaskStatus.DONE ? this.createdAt : null;
     }
 
     public UUID getId() {
@@ -71,6 +76,10 @@ public class Task {
         return status;
     }
 
+    public TaskPriority getPriority() {
+        return priority;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -79,7 +88,7 @@ public class Task {
         return completedAt;
     }
 
-    public void update(String title, String description, TaskStatus status) {
+    public void update(String title, String description, TaskStatus status, TaskPriority priority) {
         if (title != null) {
             this.title = title;
         }
@@ -88,9 +97,22 @@ public class Task {
         }
         if (status != null) {
             this.status = status;
-            this.completedAt = status == TaskStatus.done
+            this.completedAt = status == TaskStatus.DONE
                     ? (this.completedAt == null ? Instant.now() : this.completedAt)
                     : null;
         }
+        if (priority != null) {
+            this.priority = priority;
+        }
+    }
+
+    public void replace(String title, String description, TaskStatus status, TaskPriority priority) {
+        this.title = title;
+        this.description = description;
+        this.status = status;
+        this.priority = priority;
+        this.completedAt = status == TaskStatus.DONE
+                ? (this.completedAt == null ? Instant.now() : this.completedAt)
+                : null;
     }
 }

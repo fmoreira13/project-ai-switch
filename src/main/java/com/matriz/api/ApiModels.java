@@ -1,6 +1,7 @@
 package com.matriz.api;
 
 import com.matriz.domain.ProjectRole;
+import com.matriz.domain.TaskPriority;
 import com.matriz.domain.TaskStatus;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -38,15 +39,24 @@ public final class ApiModels {
 
     public record CreateTaskRequest(
             @NotNull UUID projectId,
-            @NotBlank @Size(max = 200) String title,
-            @Size(max = 1000) String description,
-            TaskStatus status) {
+            @NotBlank @Size(min = 3, max = 150) String title,
+            @Size(max = 2000) String description,
+            TaskStatus status,
+            TaskPriority priority) {
     }
 
     public record UpdateTaskRequest(
-            @Size(min = 1, max = 200) String title,
-            @Size(max = 1000) String description,
-            TaskStatus status) {
+            @Size(min = 3, max = 150) String title,
+            @Size(max = 2000) String description,
+            TaskStatus status,
+            TaskPriority priority) {
+    }
+
+    public record ReplaceTaskRequest(
+            @NotBlank @Size(min = 3, max = 150) String title,
+            @Size(max = 2000) String description,
+            @NotNull TaskStatus status,
+            @NotNull TaskPriority priority) {
     }
 
     public record TaskResponse(
@@ -55,12 +65,16 @@ public final class ApiModels {
             String title,
             String description,
             TaskStatus status,
+            TaskPriority priority,
             Instant createdAt,
             Instant completedAt,
             UserSummary assignee) {
     }
 
-    public record TaskListResponse(List<TaskResponse> items) {
+    public record TaskListResponse(List<TaskResponse> items, TaskCounts counts) {
+    }
+
+    public record TaskCounts(long total, long todo, long inProgress, long done) {
     }
 
     public record UserSummary(UUID id, String email, String displayName) {

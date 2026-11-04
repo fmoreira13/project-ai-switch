@@ -111,6 +111,51 @@ body {
     background: #eaf0ff;
 }
 
+.tasks-panel {
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #dce2ec;
+}
+
+.task-filters,
+.task-form {
+    display: grid;
+    gap: 0.6rem;
+    margin: 1rem 0;
+}
+
+.task-list {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.task-card {
+    padding: 1rem;
+    border: 1px solid #dce2ec;
+    border-radius: 0.5rem;
+    background: #fff;
+}
+
+.task-card h4 {
+    margin: 0 0 0.5rem;
+}
+
+.task-card textarea,
+.task-card select,
+.task-form textarea,
+.task-form select {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #aeb8c9;
+    border-radius: 0.35rem;
+    font: inherit;
+}
+
 .description {
     white-space: pre-wrap;
 }

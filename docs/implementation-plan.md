@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation is in progress. The application starts and answers its health endpoint; the project create/list/detail flow was exercised through the browser and verified again after a file-backed H2 backend restart. Java 25 tests, OpenAPI lint, and JavaScript syntax checks pass. Task management UI and remaining MVP verification are still pending.
+Implementation is in progress. Project and task APIs, the H2 schema upgrade, task filters/counts, and the task management UI are implemented. Java 25 integration tests, JavaScript syntax checks, OpenAPI YAML/path validation, and migration behavior on a disposable database copy pass; Redocly lint and a final browser walkthrough remain.
 
 ## Scope and evidence
 
@@ -21,7 +21,7 @@ The documented MVP covers project and task creation, listing, task status update
 | Comments and assignees | Not part of the original MVP. | Exercise 2 requires their schema and reproducible demo records; assignment also needs eligible-user selection. | Included as exercise scope only. Schema, entities, API endpoints, and demo data are present; this is not a new confirmed product requirement. |
 | Project deletion | Tasks, assignments, and comments depend on projects through tasks. | Cascading deletion risks removing dependent work. | Keep the existing safe rule: return `409 PROJECT_HAS_TASKS` while tasks exist; only delete memberships when a task-free project is deleted. |
 | Duplicate project names | US-01 prohibits duplicate names and the API has a `409` response. | Comparison semantics needed confirmation. | User confirmed trimmed, case-insensitive uniqueness; API validation and a normalized-name unique index enforce it. |
-| Status lifecycle | API and data model define `backlog`, `in_progress`, `review`, `done`, and `cancelled`; user stories only say the value must be valid. | Status values and any transition restrictions are not clearly approved by the requirements. | Confirm the enum and whether transitions are unrestricted; otherwise keep API and tests aligned to the approved set. |
+| Task field rules | The Exercise 5 brief specifies title 3-150, description up to 2000, statuses TODO/IN_PROGRESS/DONE, and priorities LOW/MEDIUM/HIGH. | Previous implementation used older status values and had no priority or task detail endpoint. | Updated task entity, schema, API, interface, and acceptance tests to the Exercise 5 field contract. Existing `review`/`cancelled` values have no approved equivalent and are rejected by the schema migration rather than reinterpreted silently. |
 | Wireframe coverage | The wireframe shows project selection, task status, search, and task details. | It does not show task creation/removal confirmations, authentication, comments, member selection, or assignment flows. It also displays relative dates although deadlines are not in the MVP data model or requirements. | Use it as a structural reference only. Do not implement deadline fields based on the wireframe; revise the wireframe before completing the UI increment. |
 
 ## Decisions
@@ -31,7 +31,7 @@ The documented MVP covers project and task creation, listing, task status update
 - The product MVP remains project/task focused; comments, assignments, and authentication are exercise-specific extensions.
 - The project/task MVP and the fields/status values in the current data model and API are the documented baseline.
 - Authentication, advanced user management, comments, and detailed change history are listed outside the initial MVP.
-- The current OpenAPI contract has nine paths and sixteen HTTP operations, including the four session lifecycle endpoints; the two core project/task resources remain the MVP focus.
+- The current OpenAPI contract has eleven paths and twenty HTTP operations, including the four session lifecycle endpoints; the two core project/task resources remain the MVP focus.
 
 ### Confirmed by the user for this plan
 
@@ -41,6 +41,7 @@ The documented MVP covers project and task creation, listing, task status update
 - The user approved project-scoped MANAGER/MEMBER permissions and active project-member eligibility for task assignments.
 - The user selected HTTP session authentication for Exercise 3 so the application can support a real login/profile/logout lifecycle.
 - For Exercise 4, the user confirmed project names should be compared case-insensitively after trimming.
+- Exercise 5 requires task title length 3-150, description up to 2000 characters, statuses `TODO`, `IN_PROGRESS`, `DONE`, and priorities `LOW`, `MEDIUM`, `HIGH`, with defaults `TODO` and `MEDIUM`.
 
 ### Selected for this exercise
 
@@ -57,7 +58,7 @@ The documented MVP covers project and task creation, listing, task status update
 - Whether the exercise's session and access policy are suitable for any future production release.
 - Whether the larger CRUD/search scope is part of this implementation beyond the two Ficha 02 operations.
 - Whether projects can be edited and how project deletion behaves when tasks exist.
-- Duplicate-name comparison rules and approved task statuses/transitions.
+- Duplicate-name comparison rules and how to map historical `review` or `cancelled` tasks if either is found. The current local database contained only `backlog` and `in_progress`.
 
 These are decision gates, not assumptions. Do not implement the affected behavior until the decision is recorded.
 
@@ -75,7 +76,7 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 - Record the selected Ficha 02 baseline: `POST /projects`, then `POST /tasks`.
 - Record the user-approved access policy and session authentication lifecycle.
 - Record comments/assignments as Exercise 2 persistence scope, with active project members as eligible assignees.
-- Record the project CRUD contract, no-task deletion rule, and case-insensitive duplicate-name rule; keep unrelated task status decisions pending.
+- Record the project CRUD contract, no-task deletion rule, case-insensitive duplicate-name rule, and Exercise 5 task field/status/priority contract.
 - Update affected requirements, data model, and API contract so they do not contradict one another.
 
 **Verification:** Review the recorded decisions against instructor/client approval; lint `openapi.yaml`; cross-check field names and operations between the API and data model.
@@ -99,7 +100,7 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 
 ### Increment 2 - Implement the confirmed data model and persistence
 
-**Status:** Done for the Exercise 4 project increment; H2 schema migration, JPA entities/repositories, and non-destructive demo-data initializer are implemented. Integration tests validate seeded data and initializer idempotence; an isolated file-backed project was read successfully after stopping and restarting the backend.
+**Status:** Done; H2 schema migration, JPA entities/repositories, and non-destructive demo-data initializer are implemented. Integration tests validate seeded data and initializer idempotence; the task-status/priority upgrade was also verified on a disposable copy of the existing file-backed database.
 
 **Components/files:** `src/main/resources/schema.sql`, `application.properties`, `.env.example`, domain entities, repositories, `DemoDataInitializer`, and persistence tests.
 
@@ -118,7 +119,7 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 
 ### Increment 3 - Implement the approved API operations
 
-**Status:** In progress; project list/search/create/detail/update/delete operations, task/member/comment/assignment endpoints, and the session lifecycle are implemented. Project validation, owner association, membership authorization, duplicate detection, and dependent-task deletion are covered by integration tests. The project flow was also verified over HTTP and through the browser, including selection after page reload and after backend restart.
+**Status:** In progress; project operations, task CRUD/filter/detail operations, task/member/comment/assignment endpoints, and the session lifecycle are implemented. Java integration tests cover the Exercise 5 task fields, access, filters/counts, and cleanup.
 
 **Components/files:** Spring Boot REST controllers and request/response DTOs for the approved operations; `openapi.yaml` remains the contract source for review.
 
@@ -132,6 +133,8 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 - Validate names (3-100 characters) and descriptions (up to 1000 characters), enforce trimmed case-insensitive uniqueness, and return `409` for duplicates.
 - Associate newly created projects with the authenticated creator as manager; authorize reads by membership and edits/removals by manager role.
 - Retain the documented safe deletion behavior: a project with tasks returns `409` and no dependent data is deleted.
+- Enforce task title 3-150, description up to 2000, defaults TODO/MEDIUM, and the specified status/priority enums.
+- Filter tasks by text, status, and priority; return total/status counts and keep the list unpaginated as the contract does not define pagination.
 - Validate required fields, references, status values, and not-found/conflict cases.
 - Keep response codes and response shapes consistent with the OpenAPI contract.
 - Implement login, profile, and logout with server-side sessions and CSRF protection.
@@ -144,7 +147,7 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 
 ### Increment 4 - Implement the MVP interface
 
-**Status:** In progress; sign-in/session guard and the project management interface are implemented. Browser verification confirmed project creation, listing, detail selection, reload, and recovery after backend restart. Task management UI and remaining manual checks are pending.
+**Status:** In progress; sign-in/session guard and project/task management interfaces are implemented. Task create/edit/delete, filters, and status counts are wired to the API; remaining manual checks are pending.
 
 **Components/files:** Static HTML/CSS/JavaScript views based on [wireframe.png](ui/wireframe.png).
 
@@ -156,7 +159,8 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 - Only managers see project edit/removal controls; non-managers receive clear API errors for direct unauthorized requests.
 - Project removal requires browser confirmation and displays the documented conflict when tasks exist.
 - Project data is reloaded from the API on page load so it remains visible after a backend restart.
-- Task status and task search flows remain for a later UI increment.
+- Project managers can create/delete tasks; project members can update task fields as permitted by the approved exercise policy.
+- Task title, description, status, priority, filters, and counts match the API contract and update without a page reload.
 - Do not show deadline/date fields unless they are added to the approved requirements and data model.
 - Destructive actions ask for confirmation before issuing removal requests.
 - Empty results and API validation errors are presented clearly.
@@ -166,7 +170,7 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 
 ### Increment 5 - End-to-end verification and handoff
 
-**Status:** Not started; depends on Increments 2-4.
+**Status:** In progress; automated task CRUD/access/filter checks are being added before the final OpenAPI and browser verification.
 
 **Components/files:** Automated test suite, OpenAPI contract, README, architecture, data model, and implementation plan.
 

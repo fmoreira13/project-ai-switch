@@ -1,5 +1,7 @@
 package com.matriz.api;
 
+import com.matriz.domain.TaskPriority;
+import com.matriz.domain.TaskStatus;
 import com.matriz.service.TaskService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -32,8 +34,17 @@ public class TaskController {
     public ApiModels.TaskListResponse list(
             Authentication authentication,
             @RequestParam(required = false) UUID projectId,
-            @RequestParam(required = false) String q) {
-        return new ApiModels.TaskListResponse(tasks.list(authentication.getName(), projectId, q));
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) TaskStatus status,
+            @RequestParam(required = false) TaskPriority priority) {
+        return tasks.list(authentication.getName(), projectId, q, status, priority);
+    }
+
+    @GetMapping("/{taskId}")
+    public ApiModels.TaskResponse get(
+            Authentication authentication,
+            @PathVariable UUID taskId) {
+        return tasks.get(authentication.getName(), taskId);
     }
 
     @PostMapping
@@ -50,6 +61,20 @@ public class TaskController {
             @RequestParam UUID taskId,
             @Valid @RequestBody ApiModels.UpdateTaskRequest request) {
         return tasks.update(authentication.getName(), taskId, request);
+    }
+
+    @PutMapping("/{taskId}")
+    public ApiModels.TaskResponse replace(
+            Authentication authentication,
+            @PathVariable UUID taskId,
+            @Valid @RequestBody ApiModels.ReplaceTaskRequest request) {
+        return tasks.replace(authentication.getName(), taskId, request);
+    }
+
+    @DeleteMapping("/{taskId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteById(Authentication authentication, @PathVariable UUID taskId) {
+        tasks.delete(authentication.getName(), taskId);
     }
 
     @DeleteMapping

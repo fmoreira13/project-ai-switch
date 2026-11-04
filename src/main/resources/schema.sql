@@ -30,12 +30,28 @@ CREATE TABLE IF NOT EXISTS project_memberships (
 CREATE TABLE IF NOT EXISTS tasks (
     id UUID PRIMARY KEY,
     project_id UUID NOT NULL REFERENCES projects(id),
-    title VARCHAR(200) NOT NULL,
-    description VARCHAR(1000),
-    status VARCHAR(30) NOT NULL CHECK (status IN ('backlog', 'in_progress', 'review', 'done', 'cancelled')),
+    title VARCHAR(150) NOT NULL,
+    description VARCHAR(2000),
+    status VARCHAR(30) NOT NULL,
+    priority VARCHAR(10) NOT NULL DEFAULT 'MEDIUM',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    completed_at TIMESTAMP WITH TIME ZONE
+    completed_at TIMESTAMP WITH TIME ZONE,
+    CONSTRAINT ck_tasks_status CHECK (status IN ('TODO', 'IN_PROGRESS', 'DONE')),
+    CONSTRAINT ck_tasks_priority CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH'))
 );
+
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS priority VARCHAR(10) DEFAULT 'MEDIUM' NOT NULL;
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS CONSTRAINT_4BE8;
+ALTER TABLE tasks ALTER COLUMN title VARCHAR(150);
+ALTER TABLE tasks ALTER COLUMN description VARCHAR(2000);
+UPDATE tasks SET status = CASE status
+    WHEN 'backlog' THEN 'TODO'
+    WHEN 'in_progress' THEN 'IN_PROGRESS'
+    WHEN 'done' THEN 'DONE'
+    ELSE status
+END;
+ALTER TABLE tasks ADD CONSTRAINT IF NOT EXISTS ck_tasks_status CHECK (status IN ('TODO', 'IN_PROGRESS', 'DONE'));
+ALTER TABLE tasks ADD CONSTRAINT IF NOT EXISTS ck_tasks_priority CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH'));
 
 CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
 

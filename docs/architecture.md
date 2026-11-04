@@ -102,8 +102,10 @@ Main entities:
 
 Essential rules:
 - each task belongs to a valid project;
-- the task title and project name are mandatory;
-- the task status follows the values defined for the MVP;
+- task titles contain 3-150 non-whitespace characters;
+- task descriptions contain at most 2000 characters;
+- the task status is TODO, IN_PROGRESS, or DONE; priority is LOW, MEDIUM, or HIGH;
+- task list filters cover text, status, and priority; pagination is not defined;
 - removals require explicit confirmation.
 
 ### 5. Persistence
@@ -120,9 +122,10 @@ Project
 Task
 - id: UUID
 - projectId: UUID
-- title: string
-- description: string nullable
-- status: backlog | in_progress | review | done | cancelled
+- title: string (3-150 characters)
+- description: string nullable (up to 2000 characters)
+- status: TODO | IN_PROGRESS | DONE (default TODO)
+- priority: LOW | MEDIUM | HIGH (default MEDIUM)
 - createdAt: datetime
 - completedAt: datetime nullable
 
