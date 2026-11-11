@@ -116,14 +116,17 @@ The local application is available at `http://localhost:8080`; health check: `ht
 
 ### Run with Docker Compose
 
-Docker Compose runs the same Spring Boot application in one container. H2 is embedded, so no separate database service is needed. The named `matriz-data` volume preserves the file-backed H2 database across container restarts and ordinary `docker compose down`.
+Docker Compose runs the same Spring Boot application in one container. H2 is embedded, so no separate database service is needed; Compose supplies its default bridge network, which is sufficient for this single service. The named `matriz-data` volume preserves the file-backed H2 database across container recreation and ordinary `docker compose down`. The service healthcheck requests `/api/health` and marks the container healthy only after receiving HTTP 200.
 
 Create the ignored `.env` file and review/change the fictitious demo passwords before starting:
 
 ```sh
 test -f .env || cp .env.example .env
 docker compose config --quiet
-docker compose up --build -d
+docker compose build
+docker compose up -d
+docker compose ps
+docker compose logs --tail=50
 curl --fail http://localhost:8080/api/health
 ```
 
