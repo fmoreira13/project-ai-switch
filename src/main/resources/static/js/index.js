@@ -12,66 +12,219 @@ const editForm = document.querySelector("#edit-form");
 const details = document.querySelector("#project-details");
 const managerActions = document.querySelector("#manager-actions");
 const welcome = document.querySelector("#welcome");
+const dashboard = document.querySelector("#dashboard");
+const dashboardLoading = document.querySelector("#dashboard-loading");
+const dashboardError = document.querySelector("#dashboard-error");
+const dashboardCounts = document.querySelector("#dashboard-counts");
+const dashboardProjectTotal = document.querySelector("#dashboard-project-total");
 const taskList = document.querySelector("#task-list");
 const taskCounts = document.querySelector("#task-counts");
 const emptyTasks = document.querySelector("#empty-tasks");
+const tasksLoading = document.querySelector("#tasks-loading");
 const taskFilterForm = document.querySelector("#task-filter-form");
 const createTaskForm = document.querySelector("#create-task-form");
+const projectLoading = document.querySelector("#projects-loading");
 let selectedProject = null;
 let eligibleMembers = [];
+let accessibleProjects = [];
+let taskCountsByProject = new Map();
 
 const user = await requireSession();
 if (user) {
     profile.textContent = `${user.displayName} (${user.email})`;
-    await loadProjects();
+    await Promise.all([loadProjects(), loadDashboard()]);
     const savedProjectId = localStorage.getItem("matriz.selectedProjectId");
     if (savedProjectId) {
         await selectProject(savedProjectId, false);
     }
 }
 
+async function request(url, options) {
+    try {
+        return await apiFetch(url, options);
+    } catch (error) {
+        console.error("Matriz API request failed.", error);
+        message.textContent = "Unable to connect to the Backend. Check the connection and try again.";
+        return null;
+    }
+}
+
 async function readError(response, fallback) {
     try {
         const body = await response.json();
-        return body.message || fallback;
+        const validationDetails = Array.isArray(body.errors)
+            ? body.errors.map(error => error.defaultMessage).filter(Boolean).join(" ")
+            : "";
+        return validationDetails || body.message || fallback;
     } catch {
         return fallback;
+    }
+}
+
+async function withBusy(element, action) {
+    if (element.dataset.busy === "true") {
+        return;
+    }
+    element.dataset.busy = "true";
+    element.setAttribute("aria-busy", "true");
+    const buttons = [
+        ...(element.matches("button") ? [element] : []),
+        ...element.querySelectorAll("button")
+    ];
+    const originalDisabled = buttons.map(button => button.disabled);
+    buttons.forEach(button => { button.disabled = true; });
+    try {
+        await action();
+    } catch (error) {
+        console.error("Matriz frontend action failed.", error);
+        message.textContent = "The operation could not be completed. Your entered data has been kept.";
+    } finally {
+        buttons.forEach((button, index) => {
+            if (button.isConnected) {
+                button.disabled = originalDisabled[index];
+            }
+        });
+        delete element.dataset.busy;
+        element.removeAttribute("aria-busy");
     }
 }
 
 async function loadProjects(selectId) {
     const query = document.querySelector("#search").value.trim();
     const suffix = query ? `?q=${encodeURIComponent(query)}` : "";
-    const response = await apiFetch(`/projects${suffix}`);
+    projectLoading.hidden = false;
+    const response = await request(`/projects${suffix}`);
     if (!response) {
+        projectLoading.hidden = true;
         return;
     }
     if (!response.ok) {
         message.textContent = await readError(response, "Projects could not be loaded.");
+        projectLoading.hidden = true;
         return;
     }
 
     const result = await response.json();
+    if (!query) {
+        accessibleProjects = result.items;
+    }
     projectList.replaceChildren();
     emptyProjects.hidden = result.items.length > 0;
+    projectLoading.hidden = true;
     for (const project of result.items) {
         const item = document.createElement("li");
         const button = document.createElement("button");
         button.type = "button";
         button.className = "project-list-item";
-        button.textContent = project.name;
+        const name = document.createElement("span");
+        name.textContent = project.name;
+        const projectTaskCounts = taskCountsByProject.get(project.id) || {
+            total: 0,
+            todo: 0,
+            inProgress: 0,
+            done: 0
+        };
+        const count = document.createElement("small");
+        count.className = "project-task-count";
+        count.textContent = `${projectTaskCounts.total} tasks · ${projectTaskCounts.todo} to do · ${projectTaskCounts.inProgress} in progress · ${projectTaskCounts.done} done`;
+        button.dataset.projectId = project.id;
+        button.append(name, count);
         button.setAttribute("aria-current", selectedProject?.id === project.id ? "true" : "false");
         button.addEventListener("click", () => selectProject(project.id));
         item.append(button);
         projectList.append(item);
     }
+    dashboardProjectTotal.textContent = `${accessibleProjects.length} accessible project${accessibleProjects.length === 1 ? "" : "s"}.`;
     if (selectId) {
         await selectProject(selectId);
     }
 }
 
+async function loadDashboard() {
+    dashboardLoading.hidden = false;
+    dashboardError.hidden = true;
+    const response = await request("/tasks");
+    dashboardLoading.hidden = true;
+    if (!response) {
+        dashboardError.textContent = message.textContent;
+        dashboardError.hidden = false;
+        return;
+    }
+    if (!response.ok) {
+        dashboardError.textContent = await readError(response, "Overview could not be loaded.");
+        dashboardError.hidden = false;
+        return;
+    }
+
+    const result = await response.json();
+    renderTaskCounts(dashboardCounts, result.counts);
+    taskCountsByProject = new Map();
+    for (const task of result.items) {
+        const counts = taskCountsByProject.get(task.projectId) || {
+            total: 0,
+            todo: 0,
+            inProgress: 0,
+            done: 0
+        };
+        counts.total += 1;
+        if (task.status === "TODO") counts.todo += 1;
+        if (task.status === "IN_PROGRESS") counts.inProgress += 1;
+        if (task.status === "DONE") counts.done += 1;
+        taskCountsByProject.set(task.projectId, counts);
+    }
+    dashboardProjectTotal.textContent = `${accessibleProjects.length} accessible project${accessibleProjects.length === 1 ? "" : "s"}.`;
+    updateProjectTaskCounts();
+}
+
+function updateProjectTaskCounts() {
+    for (const project of accessibleProjects) {
+        const count = projectList.querySelector(
+            `[data-project-id="${project.id}"] .project-task-count`);
+        if (!count) continue;
+        const counts = taskCountsByProject.get(project.id) || {
+            total: 0,
+            todo: 0,
+            inProgress: 0,
+            done: 0
+        };
+        count.textContent = `${counts.total} tasks · ${counts.todo} to do · ${counts.inProgress} in progress · ${counts.done} done`;
+    }
+}
+
+function renderTaskCounts(container, counts) {
+    const entries = [
+        ["All tasks", counts.total],
+        ["To do", counts.todo],
+        ["In progress", counts.inProgress],
+        ["Done", counts.done]
+    ];
+    container.replaceChildren();
+    for (const [label, value] of entries) {
+        const card = document.createElement("div");
+        card.className = "count-card";
+        const count = document.createElement("strong");
+        count.textContent = value;
+        const caption = document.createElement("span");
+        caption.textContent = label;
+        card.append(count, caption);
+        container.append(card);
+    }
+}
+
+function showDashboard() {
+    selectedProject = null;
+    localStorage.removeItem("matriz.selectedProjectId");
+    dashboard.hidden = false;
+    details.hidden = true;
+    createPanel.hidden = true;
+    welcome.hidden = true;
+    editForm.hidden = true;
+    loadProjects();
+}
+
 async function selectProject(projectId, persist = true) {
-    const response = await apiFetch(`/projects/${encodeURIComponent(projectId)}`);
+    message.textContent = "Loading project...";
+    const response = await request(`/projects/${encodeURIComponent(projectId)}`);
     if (!response) {
         return;
     }
@@ -86,6 +239,7 @@ async function selectProject(projectId, persist = true) {
         localStorage.setItem("matriz.selectedProjectId", selectedProject.id);
     }
     message.textContent = "";
+    dashboard.hidden = true;
     document.querySelector("#detail-name").textContent = selectedProject.name;
     document.querySelector("#detail-description").textContent = selectedProject.description || "No description.";
     document.querySelector("#detail-role").textContent = `Your role: ${selectedProject.role.toLowerCase()}`;
@@ -108,7 +262,7 @@ async function loadEligibleMembers() {
         return;
     }
 
-    const response = await apiFetch(`/projects/${encodeURIComponent(selectedProject.id)}/members`);
+    const response = await request(`/projects/${encodeURIComponent(selectedProject.id)}/members`);
     if (!response) {
         return;
     }
@@ -124,7 +278,7 @@ async function loadTasks() {
         return;
     }
 
-    taskList.replaceChildren();
+    tasksLoading.hidden = false;
     emptyTasks.hidden = true;
     taskCounts.textContent = "";
     const params = new URLSearchParams({ projectId: selectedProject.id });
@@ -135,28 +289,64 @@ async function loadTasks() {
     if (status) params.set("status", status);
     if (priority) params.set("priority", priority);
 
-    const response = await apiFetch(`/tasks?${params}`);
+    const response = await request(`/tasks?${params}`);
     if (!response) {
+        tasksLoading.hidden = true;
         return;
     }
     if (!response.ok) {
         message.textContent = await readError(response, "Tasks could not be loaded.");
+        tasksLoading.hidden = true;
         return;
     }
 
     const result = await response.json();
-    const counts = result.counts;
-    taskCounts.textContent = `All tasks: ${counts.total} · To do: ${counts.todo} · In progress: ${counts.inProgress} · Done: ${counts.done}`;
+    renderTaskCounts(taskCounts, result.counts);
     taskList.replaceChildren();
     emptyTasks.hidden = result.items.length > 0;
+    tasksLoading.hidden = true;
     for (const task of result.items) {
         taskList.append(createTaskCard(task));
     }
 }
 
-function createTaskCard(task) {
+async function refreshTaskViews() {
+    await Promise.all([loadTasks(), loadDashboard()]);
+}
+
+function createTaskCard(task, open = false) {
     const item = document.createElement("li");
-    item.className = "task-card";
+    const taskDetails = document.createElement("details");
+    taskDetails.className = "task-card";
+    taskDetails.open = open;
+    const summary = document.createElement("summary");
+    summary.textContent = `${task.title} · ${task.status.replace("_", " ")} · ${task.priority}`;
+    const body = document.createElement("div");
+    body.className = "task-card-body";
+    taskDetails.append(summary, body);
+    item.append(taskDetails);
+    let taskLoaded = open;
+    taskDetails.addEventListener("toggle", async () => {
+        if (!taskDetails.open) {
+            taskLoaded = false;
+            return;
+        }
+        if (taskLoaded) return;
+        taskLoaded = true;
+        const response = await request(`/tasks/${encodeURIComponent(task.id)}`);
+        if (!response) {
+            taskLoaded = false;
+            taskDetails.open = false;
+            return;
+        }
+        if (!response.ok) {
+            message.textContent = await readError(response, "Task details could not be loaded.");
+            taskLoaded = false;
+            taskDetails.open = false;
+            return;
+        }
+        item.replaceWith(createTaskCard(await response.json(), true));
+    });
     const form = document.createElement("form");
     form.className = "task-edit-form";
 
@@ -208,14 +398,16 @@ function createTaskCard(task) {
             if (!window.confirm(`Delete task "${task.title}"? This cannot be undone.`)) {
                 return;
             }
-            const response = await apiFetch(`/tasks/${encodeURIComponent(task.id)}`, { method: "DELETE" });
-            if (!response) return;
-            if (!response.ok) {
-                message.textContent = await readError(response, "Task could not be deleted.");
-                return;
-            }
-            message.textContent = "Task deleted.";
-            await loadTasks();
+            await withBusy(remove, async () => {
+                const response = await request(`/tasks/${encodeURIComponent(task.id)}`, { method: "DELETE" });
+                if (!response) return;
+                if (!response.ok) {
+                    message.textContent = await readError(response, "Task could not be deleted.");
+                    return;
+                }
+                message.textContent = "Task deleted.";
+                await refreshTaskViews();
+            });
         });
         actions.append(remove);
     }
@@ -240,16 +432,18 @@ function createTaskCard(task) {
             remove.className = "secondary";
             remove.textContent = "Remove";
             remove.addEventListener("click", async () => {
-                const response = await apiFetch(
-                    `/tasks/${encodeURIComponent(task.id)}/assignees/${encodeURIComponent(assignment.id)}`,
-                    { method: "DELETE" });
-                if (!response) return;
-                if (!response.ok) {
-                    message.textContent = await readError(response, "Assignee could not be removed.");
-                    return;
-                }
-                message.textContent = "Assignee removed.";
-                await loadTasks();
+                await withBusy(remove, async () => {
+                    const response = await request(
+                        `/tasks/${encodeURIComponent(task.id)}/assignees/${encodeURIComponent(assignment.id)}`,
+                        { method: "DELETE" });
+                    if (!response) return;
+                    if (!response.ok) {
+                        message.textContent = await readError(response, "Assignee could not be removed.");
+                        return;
+                    }
+                    message.textContent = "Assignee removed.";
+                    await refreshTaskViews();
+                });
             });
             row.append(remove);
         }
@@ -284,18 +478,20 @@ function createTaskCard(task) {
         assignmentForm.append(memberSelect, assignButton);
         assignmentForm.addEventListener("submit", async event => {
             event.preventDefault();
-            const response = await apiFetch(`/tasks/${encodeURIComponent(task.id)}/assignees`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ assigneeId: memberSelect.value })
+            await withBusy(assignmentForm, async () => {
+                const response = await request(`/tasks/${encodeURIComponent(task.id)}/assignees`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ assigneeId: memberSelect.value })
+                });
+                if (!response) return;
+                if (!response.ok) {
+                    message.textContent = await readError(response, "Assignee could not be added.");
+                    return;
+                }
+                message.textContent = "Assignee added.";
+                await refreshTaskViews();
             });
-            if (!response) return;
-            if (!response.ok) {
-                message.textContent = await readError(response, "Assignee could not be added.");
-                return;
-            }
-            message.textContent = "Assignee added.";
-            await loadTasks();
         });
         assigneeSection.append(assignmentForm);
     }
@@ -305,6 +501,14 @@ function createTaskCard(task) {
     commentsSection.className = "task-comments";
     const commentsSummary = document.createElement("summary");
     commentsSummary.textContent = "Comments";
+    const commentsLoading = document.createElement("p");
+    commentsLoading.className = "muted";
+    commentsLoading.textContent = "Loading comments...";
+    commentsLoading.hidden = true;
+    const commentsEmpty = document.createElement("p");
+    commentsEmpty.className = "muted";
+    commentsEmpty.textContent = "No comments yet.";
+    commentsEmpty.hidden = true;
     const commentsList = document.createElement("ul");
     commentsList.className = "comment-list";
     const commentForm = document.createElement("form");
@@ -320,10 +524,10 @@ function createTaskCard(task) {
     addComment.type = "submit";
     addComment.textContent = "Add comment";
     commentForm.append(commentLabel, commentBody, addComment);
-    commentsSection.append(commentsSummary, commentsList, commentForm);
+    commentsSection.append(commentsSummary, commentsLoading, commentsEmpty, commentsList, commentForm);
     commentsSection.addEventListener("toggle", async () => {
         if (commentsSection.open) {
-            await loadTaskComments(task.id, commentsList);
+            await loadTaskComments(task.id, commentsList, commentsLoading, commentsEmpty);
         }
     });
     commentForm.addEventListener("submit", async event => {
@@ -333,74 +537,90 @@ function createTaskCard(task) {
             commentBody.focus();
             return;
         }
-        const response = await apiFetch(`/tasks/${encodeURIComponent(task.id)}/comments`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ body: commentBody.value })
+        await withBusy(commentForm, async () => {
+            const response = await request(`/tasks/${encodeURIComponent(task.id)}/comments`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ body: commentBody.value })
+            });
+            if (!response) return;
+            if (response.status !== 201) {
+                message.textContent = await readError(response, "Comment could not be added.");
+                return;
+            }
+            const createdComment = await response.json();
+            commentForm.reset();
+            message.textContent = "Comment added.";
+            commentsEmpty.hidden = true;
+            appendComment(commentsList, createdComment);
         });
-        if (!response) return;
-        if (response.status !== 201) {
-            message.textContent = await readError(response, "Comment could not be added.");
-            return;
-        }
-        commentForm.reset();
-        message.textContent = "Comment added.";
-        await loadTaskComments(task.id, commentsList);
     });
-    item.append(commentsSection);
+    body.append(commentsSection);
 
     form.addEventListener("submit", async event => {
         event.preventDefault();
-        const response = await apiFetch(`/tasks/${encodeURIComponent(task.id)}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                title: title.value,
-                description: description.value || null,
-                status: status.value,
-                priority: priority.value
-            })
+        await withBusy(form, async () => {
+            const response = await request(`/tasks/${encodeURIComponent(task.id)}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title: title.value,
+                    description: description.value || null,
+                    status: status.value,
+                    priority: priority.value
+                })
+            });
+            if (!response) return;
+            if (!response.ok) {
+                message.textContent = await readError(response, "Task could not be updated.");
+                return;
+            }
+            message.textContent = "Task updated.";
+            await refreshTaskViews();
         });
-        if (!response) return;
-        if (!response.ok) {
-            message.textContent = await readError(response, "Task could not be updated.");
-            return;
-        }
-        message.textContent = "Task updated.";
-        await loadTasks();
     });
 
-    item.prepend(form);
+    body.prepend(form);
     return item;
 }
 
-async function loadTaskComments(taskId, list) {
-    const response = await apiFetch(`/tasks/${encodeURIComponent(taskId)}/comments`);
+async function loadTaskComments(taskId, list, loading, empty) {
+    loading.hidden = false;
+    empty.hidden = true;
+    const response = await request(`/tasks/${encodeURIComponent(taskId)}/comments`);
     if (!response) {
+        loading.hidden = true;
         return;
     }
     if (!response.ok) {
         message.textContent = await readError(response, "Comments could not be loaded.");
+        loading.hidden = true;
         return;
     }
 
     const comments = await response.json();
     list.replaceChildren();
+    empty.hidden = comments.length > 0;
     for (const comment of comments) {
-        const item = document.createElement("li");
-        const metadata = document.createElement("p");
-        const author = document.createElement("strong");
-        author.textContent = comment.authorName;
-        const date = document.createElement("time");
-        date.dateTime = comment.createdAt;
-        date.textContent = new Date(comment.createdAt).toLocaleString();
-        metadata.append(author, document.createTextNode(" · "), date);
-        const body = document.createElement("p");
-        body.className = "comment-body";
-        body.textContent = comment.body;
-        item.append(metadata, body);
-        list.append(item);
+        appendComment(list, comment);
     }
+    loading.hidden = true;
+}
+
+function appendComment(list, comment) {
+    const item = document.createElement("li");
+    const metadata = document.createElement("p");
+    const author = document.createElement("strong");
+    author.textContent = comment.authorName;
+    const date = document.createElement("time");
+    date.dateTime = comment.createdAt;
+    date.textContent = new Date(comment.createdAt).toLocaleString();
+    metadata.append(author, document.createTextNode(" · "), date);
+    const body = document.createElement("p");
+    body.className = "comment-body";
+    body.textContent = comment.body;
+    item.append(metadata, body);
+    list.append(item);
 }
 
 function makeSelect(name, options, selected) {
@@ -418,6 +638,7 @@ function makeSelect(name, options, selected) {
 
 document.querySelector("#new-project").addEventListener("click", () => {
     selectedProject = null;
+    dashboard.hidden = true;
     editForm.hidden = true;
     details.hidden = true;
     welcome.hidden = true;
@@ -428,38 +649,43 @@ document.querySelector("#new-project").addEventListener("click", () => {
 
 document.querySelector("#cancel-create").addEventListener("click", () => {
     createPanel.hidden = true;
-    welcome.hidden = !selectedProject;
+    dashboard.hidden = Boolean(selectedProject);
+    welcome.hidden = true;
     details.hidden = !selectedProject;
 });
 
+document.querySelector("#show-dashboard").addEventListener("click", showDashboard);
+document.querySelector("#back-to-dashboard").addEventListener("click", showDashboard);
+
 searchForm.addEventListener("submit", async event => {
     event.preventDefault();
-    await loadProjects();
+    await withBusy(searchForm, loadProjects);
 });
 
 createForm.addEventListener("submit", async event => {
     event.preventDefault();
-    const response = await apiFetch("/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            name: createForm.elements.name.value,
-            description: createForm.elements.description.value || null
-        })
-    });
-    if (!response) {
-        return;
-    }
-    if (response.status !== 201) {
-        message.textContent = await readError(response, "Project could not be created.");
-        return;
-    }
+    await withBusy(createForm, async () => {
+        const response = await request("/projects", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name: createForm.elements.name.value,
+                description: createForm.elements.description.value || null
+            })
+        });
+        if (!response) return;
+        if (response.status !== 201) {
+            message.textContent = await readError(response, "Project could not be created.");
+            return;
+        }
 
-    const project = await response.json();
-    createForm.reset();
-    createPanel.hidden = true;
-    await loadProjects(project.id);
-    message.textContent = "Project created.";
+        const project = await response.json();
+        createForm.reset();
+        createPanel.hidden = true;
+        await Promise.all([loadProjects(), loadDashboard()]);
+        await selectProject(project.id);
+        message.textContent = "Project created.";
+    });
 });
 
 document.querySelector("#edit-project").addEventListener("click", () => {
@@ -475,47 +701,52 @@ document.querySelector("#cancel-edit").addEventListener("click", () => {
 
 editForm.addEventListener("submit", async event => {
     event.preventDefault();
-    const response = await apiFetch(`/projects/${encodeURIComponent(selectedProject.id)}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            name: editForm.elements.name.value,
-            description: editForm.elements.description.value || null
-        })
-    });
-    if (!response) {
-        return;
-    }
-    if (!response.ok) {
-        message.textContent = await readError(response, "Project could not be updated.");
-        return;
-    }
+    await withBusy(editForm, async () => {
+        const response = await request(`/projects/${encodeURIComponent(selectedProject.id)}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name: editForm.elements.name.value,
+                description: editForm.elements.description.value || null
+            })
+        });
+        if (!response) return;
+        if (!response.ok) {
+            message.textContent = await readError(response, "Project could not be updated.");
+            return;
+        }
 
-    await selectProject(selectedProject.id);
-    message.textContent = "Project updated.";
+        selectedProject = await response.json();
+        document.querySelector("#detail-name").textContent = selectedProject.name;
+        document.querySelector("#detail-description").textContent = selectedProject.description || "No description.";
+        editForm.hidden = true;
+        await loadProjects();
+        message.textContent = "Project updated.";
+    });
 });
 
-document.querySelector("#delete-project").addEventListener("click", async () => {
+document.querySelector("#delete-project").addEventListener("click", async event => {
     if (!selectedProject || !window.confirm(`Delete project "${selectedProject.name}"? This cannot be undone.`)) {
         return;
     }
-    const response = await apiFetch(`/projects?projectId=${encodeURIComponent(selectedProject.id)}`, {
-        method: "DELETE"
-    });
-    if (!response) {
-        return;
-    }
-    if (!response.ok) {
-        message.textContent = await readError(response, "Project could not be deleted.");
-        return;
-    }
+    await withBusy(event.currentTarget, async () => {
+        const response = await request(`/projects?projectId=${encodeURIComponent(selectedProject.id)}`, {
+            method: "DELETE"
+        });
+        if (!response) return;
+        if (!response.ok) {
+            message.textContent = await readError(response, "Project could not be deleted.");
+            return;
+        }
 
-    localStorage.removeItem("matriz.selectedProjectId");
-    selectedProject = null;
-    details.hidden = true;
-    welcome.hidden = false;
-    message.textContent = "Project deleted.";
-    await loadProjects();
+        localStorage.removeItem("matriz.selectedProjectId");
+        selectedProject = null;
+        details.hidden = true;
+        dashboard.hidden = false;
+        welcome.hidden = true;
+        message.textContent = "Project deleted.";
+        await Promise.all([loadProjects(), loadDashboard()]);
+    });
 });
 
 document.querySelector("#new-task").addEventListener("click", () => {
@@ -532,45 +763,42 @@ document.querySelector("#cancel-create-task").addEventListener("click", () => {
 
 createTaskForm.addEventListener("submit", async event => {
     event.preventDefault();
-    const response = await apiFetch("/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            projectId: selectedProject.id,
-            title: createTaskForm.elements.title.value,
-            description: createTaskForm.elements.description.value || null,
-            status: createTaskForm.elements.status.value,
-            priority: createTaskForm.elements.priority.value
-        })
+    await withBusy(createTaskForm, async () => {
+        const response = await request("/tasks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                projectId: selectedProject.id,
+                title: createTaskForm.elements.title.value,
+                description: createTaskForm.elements.description.value || null,
+                status: createTaskForm.elements.status.value,
+                priority: createTaskForm.elements.priority.value
+            })
+        });
+        if (!response) return;
+        if (response.status !== 201) {
+            message.textContent = await readError(response, "Task could not be created.");
+            return;
+        }
+        createTaskForm.reset();
+        createTaskForm.hidden = true;
+        message.textContent = "Task created.";
+        await refreshTaskViews();
     });
-    if (!response) return;
-    if (response.status !== 201) {
-        message.textContent = await readError(response, "Task could not be created.");
-        return;
-    }
-    createTaskForm.reset();
-    createTaskForm.hidden = true;
-    message.textContent = "Task created.";
-    await loadTasks();
 });
 
 taskFilterForm.addEventListener("submit", async event => {
     event.preventDefault();
-    await loadTasks();
+    await withBusy(taskFilterForm, loadTasks);
 });
 
 logoutButton.addEventListener("click", async () => {
-    logoutButton.disabled = true;
-    try {
-        const response = await apiFetch("/auth/logout", { method: "POST" });
+    await withBusy(logoutButton, async () => {
+        const response = await request("/auth/logout", { method: "POST" });
         if (response?.status === 204) {
             window.location.replace("/login.html?reason=logout");
         } else if (response) {
             message.textContent = await readError(response, "Sign out could not be completed.");
         }
-    } catch {
-        message.textContent = "Unable to connect. Check your connection and try again.";
-    } finally {
-        logoutButton.disabled = false;
-    }
+    });
 });

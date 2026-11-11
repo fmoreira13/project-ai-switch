@@ -49,6 +49,17 @@ body {
     margin-bottom: 1.5rem;
 }
 
+.workspace-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.workspace-actions button {
+    margin-top: 0;
+}
+
 .workspace-header h1,
 .section-heading h2 {
     margin-bottom: 0.25rem;
@@ -69,6 +80,37 @@ body {
 .project-sidebar,
 .project-content > .card {
     width: 100%;
+}
+
+.project-content {
+    min-width: 0;
+}
+
+.dashboard-counts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+
+.count-card {
+    display: grid;
+    gap: 0.25rem;
+    padding: 1rem;
+    border: 1px solid #dce2ec;
+    border-radius: 0.5rem;
+    background: #f8f9fc;
+}
+
+.count-card strong {
+    font-size: 1.5rem;
+}
+
+.project-task-count {
+    display: block;
+    margin-top: 0.25rem;
+    color: #5c6678;
+    font-weight: 400;
 }
 
 .project-sidebar {
@@ -133,10 +175,26 @@ body {
 }
 
 .task-card {
+    display: block;
     padding: 1rem;
     border: 1px solid #dce2ec;
     border-radius: 0.5rem;
     background: #fff;
+}
+
+.task-card > summary,
+.task-comments > summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.task-card-body {
+    margin-top: 1rem;
+}
+
+.task-edit-form {
+    display: grid;
+    gap: 0.6rem;
 }
 
 .task-card h4 {
@@ -218,6 +276,7 @@ body {
 
 .task-card textarea,
 .task-card select,
+.task-card input,
 .task-form textarea,
 .task-form select {
     box-sizing: border-box;
@@ -287,6 +346,10 @@ button:disabled {
     min-height: 1.5em;
 }
 
+.message.error {
+    color: #a52b36;
+}
+
 @media (max-width: 44rem) {
     .project-layout {
         grid-template-columns: 1fr;
@@ -294,5 +357,20 @@ button:disabled {
 
     .workspace-header {
         align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .dashboard-counts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 24rem) {
+    .dashboard-counts {
+        grid-template-columns: 1fr;
+    }
+
+    .card {
+        padding: 1.25rem;
     }
 }

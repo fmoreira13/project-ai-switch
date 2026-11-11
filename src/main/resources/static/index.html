@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="matriz-api-base-url" content="">
     <title>Projects - Matriz</title>
     <link rel="stylesheet" href="/css/auth.css">
     <script type="module" src="/js/index.js"></script>
@@ -14,14 +15,17 @@
             <h1>Matriz</h1>
             <p>Signed in as <strong id="profile"></strong></p>
         </div>
-        <button id="logout" type="button" class="secondary">Sign out</button>
+        <nav class="workspace-actions" aria-label="Main navigation">
+            <button id="show-dashboard" type="button" class="secondary">Overview</button>
+            <button id="new-project" type="button">New project</button>
+            <button id="logout" type="button" class="secondary">Sign out</button>
+        </nav>
     </header>
     <p id="message" class="message" role="status" aria-live="polite"></p>
     <div class="project-layout">
         <aside class="card project-sidebar">
             <div class="section-heading">
                 <h2>Projects</h2>
-                <button id="new-project" type="button">New project</button>
             </div>
             <form id="search-form" class="search-form">
                 <label for="search">Search by name</label>
@@ -31,9 +35,19 @@
                 </div>
             </form>
             <p id="empty-projects" class="muted" hidden>No projects found.</p>
+            <p id="projects-loading" class="muted" role="status" hidden>Loading projects...</p>
             <ul id="project-list" class="project-list" aria-label="Projects"></ul>
         </aside>
         <section class="project-content">
+            <section id="dashboard" class="card dashboard">
+                <h2>Overview</h2>
+                <p class="muted">Tasks across all projects you can access.</p>
+                <p id="dashboard-loading" class="muted" role="status" hidden>Loading your overview...</p>
+                <p id="dashboard-error" class="message error" role="alert" hidden></p>
+                <div id="dashboard-counts" class="dashboard-counts" aria-live="polite"></div>
+                <p id="dashboard-project-total" class="muted"></p>
+                <p class="muted">Select a project to view and manage its tasks.</p>
+            </section>
             <section id="create-panel" class="card" hidden>
                 <h2>Create a project</h2>
                 <form id="create-form" class="project-form">
@@ -48,6 +62,7 @@
                 </form>
             </section>
             <section id="project-details" class="card" hidden>
+                <button id="back-to-dashboard" type="button" class="secondary">Back to overview</button>
                 <h2 id="detail-name"></h2>
                 <p id="detail-description" class="description"></p>
                 <p id="detail-role" class="muted"></p>
@@ -71,6 +86,7 @@
                         <button id="new-task" type="button">New task</button>
                     </div>
                     <p id="task-counts" class="muted" aria-live="polite"></p>
+                    <p id="tasks-loading" class="muted" role="status" hidden>Loading tasks...</p>
                     <form id="task-filter-form" class="task-filters">
                         <label for="task-search">Search tasks</label>
                         <input id="task-search" name="q" type="search" maxlength="200">
@@ -117,7 +133,7 @@
                     </form>
                 </section>
             </section>
-            <section id="welcome" class="card">
+            <section id="welcome" class="card" hidden>
                 <h2>Manage your projects</h2>
                 <p class="muted">Create a project or select one from the list to view its details.</p>
             </section>

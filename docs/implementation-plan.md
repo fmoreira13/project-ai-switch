@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation is in progress. The task CRUD/filter increment and both Exercise 6 increments (multi-assignee management and comments) are implemented. Java 25 tests, JavaScript syntax, OpenAPI structure/path checks, and disposable H2 migration checks pass; the diff has been reviewed. A browser walkthrough and Redocly lint remain.
+Implementation is in progress. The Exercise 7 interface now includes overview counts, project navigation, task details, shared API-origin configuration, loading/error states, and submission locking. Java 25 tests, JavaScript syntax, OpenAPI structure/path checks, and disposable H2 migration checks pass; the browser walkthrough and Redocly lint remain.
 
 ## Scope and evidence
 
@@ -149,7 +149,7 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 
 ### Increment 4 - Implement the MVP interface
 
-**Status:** In progress; sign-in/session guard, project/task management, assignee selection/removal, and task comment interface are implemented. Final browser walkthrough remains.
+**Status:** In progress; sign-in/session guard, project/task management, overview counts, assignee selection/removal, task detail expansion, and task comment interface are implemented. Automated validation of this increment and the final browser walkthrough remain.
 
 **Components/files:** Static HTML/CSS/JavaScript views based on [wireframe.png](ui/wireframe.png).
 
@@ -163,6 +163,10 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 - Project data is reloaded from the API on page load so it remains visible after a backend restart.
 - Project managers can create/delete tasks; project members can update task fields as permitted by the approved exercise policy.
 - Task title, description, status, priority, filters, and counts match the API contract and update without a page reload.
+- The overview shows task counts across accessible projects; project navigation shows per-project totals by status.
+- Dashboard, project detail, and create-project views have working navigation controls.
+- The Backend origin is centralized in the `matriz-api-base-url` meta setting on both frontend pages and defaults to the current origin.
+- Loading and API error states are visible; repeat submissions are disabled while a request is running, and failed submissions retain entered values.
 - Managers can add multiple eligible assignees and remove one without affecting the others; the list reappears after reloading the project/task list.
 - Project members can add comments and view each comment's author and date; whitespace-only and over-2000-character content is rejected.
 - Comment authorship and timestamps come from the backend, and comments are returned again after fetching/reopening the task.
@@ -171,11 +175,11 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 - Empty results and API validation errors are presented clearly.
 - Do not add a UI for roles, comments, or assignments beyond the approved exercise scope.
 
-**Verification:** Earlier project create/list/detail, reload, and backend-restart behavior was checked in a browser. JavaScript syntax validation passes. The Exercise 6 assignee/comment flows and remaining project error/confirmation states still need a manual browser walkthrough.
+**Verification:** JavaScript syntax validation, `git diff --check`, and the Java 25 test suite pass. Earlier project create/list/detail, reload, and backend-restart behavior was checked in a browser. The overview, task-detail, dashboard navigation, and Exercise 6 assignee/comment flows and remaining project error/confirmation states still need a manual browser walkthrough.
 
 ### Increment 5 - End-to-end verification and handoff
 
-**Status:** In progress; automated task CRUD/access/filter, multi-assignee, and comment checks pass. Final browser walkthrough and optional Redocly lint remain.
+**Status:** In progress; automated task CRUD/access/filter, multi-assignee, and comment checks pass, as do the current Java and JavaScript checks. Complete the final browser walkthrough; optional Redocly lint remains.
 
 **Components/files:** Automated test suite, OpenAPI contract, README, architecture, data model, and implementation plan.
 

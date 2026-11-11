@@ -80,6 +80,8 @@ The local API is available at `http://localhost:8080`; health check: `http://loc
 
 After signing in, use `http://localhost:8080/` to create, list, search, inspect, edit, and remove projects and tasks. Project names must contain 3-100 characters and are unique after trimming, without regard to case; descriptions are limited to 1000 characters. Projects with tasks cannot be removed and return a conflict, preserving all dependent records. Task titles must contain 3-150 non-whitespace characters; descriptions are limited to 2000 characters. Tasks use statuses `TODO`, `IN_PROGRESS`, and `DONE` and priorities `LOW`, `MEDIUM`, and `HIGH`; defaults are `TODO` and `MEDIUM`. Members can view/update tasks, while only managers can create/remove them or manage their assignments. Multiple active project members can be assigned to a task, with no duplicate assignment for the same user. Task comments show the author and date; members can add comments containing non-whitespace text of 1-2000 characters. Task lists support text, status, and priority filters, return current status counts, and are not paginated by the API contract.
 
+The frontend reads the Backend origin from the `matriz-api-base-url` meta tag in both `src/main/resources/static/index.html` and `src/main/resources/static/login.html`. The default is empty, which uses the current origin and is the recommended same-origin setup. If the Backend origin changes, set the same HTTP(S) origin in both files; cross-origin session cookies also require server-side CORS and cookie configuration.
+
 Demo users (fictitious credentials in `.env.example`):
 
 - `manager@matriz.local` / `MATRIZ_DEMO_MANAGER_PASSWORD`
@@ -101,4 +103,4 @@ The `JSESSIONID` session cookie is HttpOnly and SameSite=Lax; the CSRF token is 
 
 ## Current project status
 
-The Spring Boot project, H2 persistence schema, session authentication, project/task management interface, assignee management, comments, and project-scoped access checks are implemented. The application uses Java 25 and the Gradle Wrapper. Remaining verification steps are tracked in [docs/implementation-plan.md](docs/implementation-plan.md); access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md).
+The Spring Boot project, H2 persistence schema, session authentication, project/task management interface, overview counts, assignee management, comments, and project-scoped access checks are implemented. The application uses Java 25 and the Gradle Wrapper. The Exercise 7 browser walkthrough and remaining verification steps are tracked in [docs/implementation-plan.md](docs/implementation-plan.md); access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md).

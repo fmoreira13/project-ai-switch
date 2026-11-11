@@ -1,4 +1,19 @@
 const loginPath = "/login.html";
+const configuredApiBaseUrl = document.querySelector('meta[name="matriz-api-base-url"]')?.content.trim();
+const apiBaseUrl = configuredApiBaseUrl || window.location.origin;
+
+function apiUrl(path) {
+    let base;
+    try {
+        base = new URL(apiBaseUrl);
+    } catch {
+        throw new Error("The configured Backend address is invalid.");
+    }
+    if (!["http:", "https:"].includes(base.protocol)) {
+        throw new Error("The configured Backend address must use HTTP or HTTPS.");
+    }
+    return new URL(path.replace(/^\/+/, ""), `${base.origin}/`);
+}
 
 export function safeReturnPath(value) {
     if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {
@@ -17,7 +32,7 @@ export function safeReturnPath(value) {
 }
 
 export async function getCsrfToken() {
-    const response = await fetch("/auth/csrf", { credentials: "same-origin" });
+    const response = await fetch(apiUrl("/auth/csrf"), { credentials: "include" });
     if (!response.ok) {
         throw new Error("Could not prepare a secure request.");
     }
@@ -32,11 +47,11 @@ export async function apiFetch(url, options = {}) {
         headers.set("X-CSRF-TOKEN", await getCsrfToken());
     }
 
-    const response = await fetch(url, {
+    const response = await fetch(apiUrl(url), {
         ...options,
         method,
         headers,
-        credentials: "same-origin"
+        credentials: "include"
     });
     if (response.status === 401) {
         const returnTo = window.location.pathname + window.location.search + window.location.hash;
@@ -45,6 +60,8 @@ export async function apiFetch(url, options = {}) {
     }
     return response;
 }
+
+export { apiUrl };
 
 export async function requireSession() {
     const response = await apiFetch("/auth/me");

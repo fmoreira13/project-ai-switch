@@ -1,4 +1,4 @@
-import { getCsrfToken, safeReturnPath } from "./auth.js";
+import { apiFetch, apiUrl, safeReturnPath } from "./auth.js";
 
 const form = document.querySelector("#login-form");
 const message = document.querySelector("#message");
@@ -15,7 +15,7 @@ if (params.get("reason") === "expired") {
     message.textContent = "Sign in to continue to Matriz.";
 }
 
-fetch("/auth/me", { credentials: "same-origin" })
+fetch(apiUrl("/auth/me"), { credentials: "include" })
     .then(response => {
         if (response.ok) {
             window.location.replace(returnTo);
@@ -32,13 +32,10 @@ form.addEventListener("submit", async event => {
     message.textContent = "Signing in...";
 
     try {
-        const csrfToken = await getCsrfToken();
-        const response = await fetch("/auth/login", {
+        const response = await apiFetch("/auth/login", {
             method: "POST",
-            credentials: "same-origin",
             headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": csrfToken
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({
                 email: form.elements.email.value,
