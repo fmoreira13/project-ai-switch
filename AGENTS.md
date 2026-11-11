@@ -9,7 +9,7 @@ Matriz is an application for managing projects and tasks in work teams. The obje
 - Java 25 with Spring Boot and the Gradle Wrapper.
 - Spring Data JPA and file-backed H2 for local use; integration tests use in-memory H2.
 - Plain HTML, CSS, and JavaScript served by Spring Boot.
-- Node.js 22 or later is only needed for the frontend auth regression-test command.
+- Node.js 22 or later is needed for the frontend auth regression tests and Playwright end-to-end tests.
 - Keep changes within the documented MVP and implementation exercises. The local demo access policy is not a production security policy.
 
 ## General rules
@@ -75,6 +75,16 @@ node --check src/main/resources/static/js/index.js
 node --experimental-default-type=module --test src/test/js/auth.test.mjs
 git diff --check
 ```
+
+Install the Playwright development dependency once, then run the end-to-end browser test:
+
+```sh
+npm ci
+npx playwright install chromium
+npm run test:e2e
+```
+
+The Playwright configuration starts the application on port 18080 with an isolated in-memory H2 database and fictitious test passwords. It does not use or alter the local `data/` database or `.env`.
 
 The file-backed local H2 database is stored under the ignored `data/` directory. Do not remove or reset it unless the user explicitly requests that action. Test configuration uses an in-memory database and does not change the local database.
 

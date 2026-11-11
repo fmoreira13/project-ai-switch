@@ -2,7 +2,7 @@
 
 ## Objective and scope
 
-Define essential, requirement-based tests for task title validation, task creation and consultation, and denial of access to a task by a user who is not a member of its project. These cases cover the selected Exercise 1 scope; they do not represent exhaustive task or authorization testing.
+Define requirement-based tests for task title validation, task creation and consultation, denial of access to a task by a user who is not a member of its project, and the end-to-end task creation journey. These cases cover the selected exercise scope; they do not represent exhaustive task or authorization testing.
 
 ## Basis and reviewed decisions
 
@@ -13,6 +13,10 @@ Define essential, requirement-based tests for task title validation, task creati
 - The OpenAPI `minLength: 3` constraint does not by itself reject a three-character whitespace-only title. The user-story rule and the OpenAPI description explicitly require non-whitespace content, so the whitespace case must be validated by the application, not inferred from `minLength` alone.
 
 The test plan follows the agreed access rules instead of treating authentication or roles as original product requirements: those were not defined in the initial requirements document and were approved specifically for this implementation exercise.
+
+## Exercise 4 plan review
+
+The proposed plan was approved before implementation. Existing JUnit coverage was reused for unit and integration levels; the only new test framework is development-only Playwright for the browser journey. The E2E scope is limited to the required user path and its visible outcome. No production source files or API behavior were changed.
 
 ## Test environment and commands
 
@@ -72,6 +76,24 @@ Focused command:
 ```
 
 Result: passed on 2026-11-11 (1 JUnit integration test, 0 failures). This verifies database persistence and retrieval through the API within a controlled test context; it does not claim that this test restarts the Backend or verifies the local file-backed database across restarts.
+
+## End-to-end test: create a task through the interface
+
+The approved minimal E2E plan uses Playwright because the repository's frontend is plain HTML/JavaScript served by Spring Boot and already exposes stable form labels and IDs. The test in [task-creation.spec.js](../e2e/task-creation.spec.js) signs in as the fictitious demo manager, selects the seeded `Matriz Demo - Alpha` project, creates a uniquely named task, and asserts that its title appears under `#task-list` and that the success message is shown. It uses label/role selectors and existing DOM IDs; Playwright's locator assertions wait for UI state instead of fixed delays.
+
+The runner configuration in [playwright.config.js](../playwright.config.js) starts Spring Boot at `127.0.0.1:18080` with a separate in-memory H2 database and test-only demo passwords. It does not load `.env` or use the file-backed `data/` database, and Playwright stops the server after the run. `reuseExistingServer: false` ensures the test owns its application instance; the E2E title also includes a UUID. The E2E passed three consecutive runs (1 test, 0 failures each), including once after a clean `npm ci` installation. The server was confirmed stopped after execution. No screenshot or trace was needed because no run failed; traces are configured to be retained on failure.
+
+The final combined verification on 2026-11-11 passed: `./gradlew clean test` ran 22 JUnit tests with no failures; frontend syntax checks and the Node auth regression suite passed (2 tests); and `npm run test:e2e` passed. `git diff --check` passed.
+
+Setup and execution commands:
+
+```sh
+npm ci
+npx playwright install chromium
+npm run test:e2e
+```
+
+The Playwright dependency is development-only; the application runtime remains Java/Spring Boot and has no Node.js runtime requirement.
 
 ## Review notes and limits
 

@@ -38,6 +38,7 @@ The project documentation is organized as follows:
 - [docs/database.md](docs/database.md): MVP data model.
 - [docs/implementation-plan.md](docs/implementation-plan.md): incremental implementation plan, decisions, acceptance criteria, and verification.
 - [docs/test-plan.md](docs/test-plan.md): requirement-based task validation, creation/consultation, and access-control scenarios.
+- [playwright.config.js](playwright.config.js) and [e2e/](e2e/): repeatable browser-based end-to-end checks using an isolated in-memory H2 database.
 - [docs/verification.md](docs/verification.md): expected and observed Exercise 8 results, automated test evidence, and user-reported manual checks.
 - [docs/ui/wireframe.png](docs/ui/wireframe.png): visual prototype of the MVP project and task management flow.
 
@@ -54,7 +55,7 @@ The project documentation is organized as follows:
 - Java Development Kit (JDK) 25.
 - Git to clone the repository.
 - Network access on the first Gradle Wrapper run to download Gradle and dependencies.
-- Node.js 22 or later is needed only for the frontend auth regression-test command. The application itself needs no Node.js runtime or frontend package manager.
+- Node.js 22 or later is needed for the frontend auth regression and Playwright end-to-end test commands. The application itself needs no Node.js runtime.
 
 ## Install and configure
 
@@ -111,6 +112,16 @@ node --check src/main/resources/static/js/index.js
 node --experimental-default-type=module --test src/test/js/auth.test.mjs
 git diff --check
 ```
+
+Run the end-to-end browser test (first install dependencies and the Chromium browser once):
+
+```sh
+npm ci
+npx playwright install chromium
+npm run test:e2e
+```
+
+The E2E runner starts a separate application instance on port `18080` using an isolated in-memory database and fictitious test credentials. It does not use or alter the local `data/` database or `.env`.
 
 After signing in, use `http://localhost:8080/` to create, list, search, inspect, edit, and remove projects and tasks. Project names must contain 3-100 characters and are unique after trimming, without regard to case; descriptions are limited to 1000 characters. Projects with tasks cannot be removed and return a conflict, preserving all dependent records. Task titles must contain 3-150 non-whitespace characters; descriptions are limited to 2000 characters. Tasks use statuses `TODO`, `IN_PROGRESS`, and `DONE` and priorities `LOW`, `MEDIUM`, and `HIGH`; defaults are `TODO` and `MEDIUM`. Members can view/update tasks, while only managers can create/remove them or manage their assignments. Multiple active project members can be assigned to a task, with no duplicate assignment for the same user. Task comments show the author and date; members can add comments containing non-whitespace text of 1-2000 characters. Task lists support text, status, and priority filters, return current status counts, and are not paginated by the API contract.
 
