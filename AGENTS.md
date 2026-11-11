@@ -4,6 +4,14 @@
 
 Matriz is an application for managing projects and tasks in work teams. The objective of the project at this stage is to support work organization, track progress, and coordinate among team members.
 
+## Project stack
+
+- Java 25 with Spring Boot and the Gradle Wrapper.
+- Spring Data JPA and file-backed H2 for local use; integration tests use in-memory H2.
+- Plain HTML, CSS, and JavaScript served by Spring Boot.
+- Node.js 22 or later is only needed for the frontend auth regression-test command.
+- Keep changes within the documented MVP and implementation exercises. The local demo access policy is not a production security policy.
+
 ## General rules
 
 - Read and respect the project documentation before making changes.
@@ -37,9 +45,42 @@ Matriz is an application for managing projects and tasks in work teams. The obje
 - Communicate changes made, checks performed, and results obtained.
 - If there are ambiguities, ask for clarification instead of assuming a solution.
 
+## Local setup and verification commands
+
+On macOS, select Java 25 and create the local environment file only if it does not already exist:
+
+```sh
+export JAVA_HOME=$(/usr/libexec/java_home -v 25)
+export PATH="$JAVA_HOME/bin:$PATH"
+java -version
+test -f .env || cp .env.example .env
+set -a
+source .env
+set +a
+```
+
+Run the application from the repository root. Spring initializes the idempotent schema in `src/main/resources/schema.sql` and the non-destructive demo data when the application starts:
+
+```sh
+./gradlew bootRun
+```
+
+Run the backend tests and frontend JavaScript checks:
+
+```sh
+./gradlew clean test
+node --check src/main/resources/static/js/auth.js
+node --check src/main/resources/static/js/login.js
+node --check src/main/resources/static/js/index.js
+node --experimental-default-type=module --test src/test/js/auth.test.mjs
+git diff --check
+```
+
+The file-backed local H2 database is stored under the ignored `data/` directory. Do not remove or reset it unless the user explicitly requests that action. Test configuration uses an in-memory database and does not change the local database.
+
 ## Scope limits
 
-- The current focus is project analysis and specification.
+- The current focus is a verifiable implementation of the documented MVP and implementation exercises.
 - Do not implement features outside the MVP without explicit approval.
 - Do not propose technologies or detailed architecture without prior documentation.
 - Do not change requirement documents, user stories, or constraints without a clear justification and alignment with the project context.

@@ -47,13 +47,14 @@ export async function apiFetch(url, options = {}) {
         headers.set("X-CSRF-TOKEN", await getCsrfToken());
     }
 
-    const response = await fetch(apiUrl(url), {
+    const endpoint = apiUrl(url);
+    const response = await fetch(endpoint, {
         ...options,
         method,
         headers,
         credentials: "include"
     });
-    if (response.status === 401) {
+    if (response.status === 401 && endpoint.pathname !== "/auth/login") {
         const returnTo = window.location.pathname + window.location.search + window.location.hash;
         window.location.assign(`${loginPath}?reason=expired&returnTo=${encodeURIComponent(returnTo)}`);
         return null;

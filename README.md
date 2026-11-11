@@ -29,6 +29,8 @@ Work teams often need to coordinate multiple projects, distribute tasks, track s
 
 The project documentation is organized as follows:
 
+- [AGENTS.md](AGENTS.md): project-specific implementation and verification commands.
+- [openapi.yaml](openapi.yaml): HTTP API contract, session security, validation, and response schemas.
 - [docs/requirements.md](docs/requirements.md): overview, goals, requirements, and scope of the MVP.
 - [docs/user-stories.md](docs/user-stories.md): user stories, acceptance criteria, and edge cases.
 - [docs/constraints.md](docs/constraints.md): constraints, assumptions, and scope limitations.
@@ -46,44 +48,68 @@ The project documentation is organized as follows:
 - Spring Data JPA and H2.
 - Plain HTML, CSS, and JavaScript for the frontend.
 
-## Run locally
+## Requirements
 
-On macOS, select the installed Java 25 JDK and verify it:
+- Java Development Kit (JDK) 25.
+- Git to clone the repository.
+- Network access on the first Gradle Wrapper run to download Gradle and dependencies.
+- Node.js 22 or later is needed only for the frontend auth regression-test command. The application itself needs no Node.js runtime or frontend package manager.
+
+## Install and configure
+
+Clone the repository and enter its root directory. On macOS, select Java 25 and verify it:
 
 ```sh
+git clone <repository-url> Matriz
+cd Matriz
 export JAVA_HOME=$(/usr/libexec/java_home -v 25)
 export PATH="$JAVA_HOME/bin:$PATH"
 java -version
 ```
 
-Create a local environment file from the fictitious example and load it into the current shell:
+Create `.env` from the fictitious example if it does not exist, then load it into the shell where the application will run:
 
 ```sh
-cp .env.example .env
+test -f .env || cp .env.example .env
 set -a
 source .env
 set +a
 ```
 
-Start the application:
+`.env.example` contains variables for the H2 URL and credentials, the two fictitious demo passwords, and the session-cookie Secure flag. `.env` is ignored by Git; do not commit real credentials. The example values are for local demonstration only.
+
+## Schema and demonstration data
+
+On the first application start, Spring executes `src/main/resources/schema.sql`, which creates or updates the H2 schema idempotently; Hibernate validates the mapped schema. No separate migration command is required. `DemoDataInitializer` creates two demo accounts, memberships, projects, and sample task data only when those records are absent. It does not reset or delete user data on subsequent starts.
+
+The default H2 database is file-backed under `data/`, which is ignored by Git and persists between Backend restarts. The database path can be changed through `MATRIZ_DB_URL`. Integration tests use an isolated in-memory H2 database.
+
+## Run locally
+
+Start the application from the repository root with Java 25 selected and `.env` loaded:
 
 ```sh
 ./gradlew bootRun
 ```
 
-In another terminal, with Java 25 selected, run the tests:
+The local application is available at `http://localhost:8080`; health check: `http://localhost:8080/api/health`. The frontend is served by Spring Boot at `/` and `/login.html`.
+
+To run checks from another terminal, select Java 25 there as well:
 
 ```sh
-./gradlew test
+./gradlew clean test
+node --check src/main/resources/static/js/auth.js
+node --check src/main/resources/static/js/login.js
+node --check src/main/resources/static/js/index.js
+node --experimental-default-type=module --test src/test/js/auth.test.mjs
+git diff --check
 ```
-
-The local API is available at `http://localhost:8080`; health check: `http://localhost:8080/api/health`. H2 uses a file under `data/`, which is ignored by Git and preserved between application starts. The schema is initialized idempotently from `src/main/resources/schema.sql`; demo data is inserted only when its records are absent.
 
 After signing in, use `http://localhost:8080/` to create, list, search, inspect, edit, and remove projects and tasks. Project names must contain 3-100 characters and are unique after trimming, without regard to case; descriptions are limited to 1000 characters. Projects with tasks cannot be removed and return a conflict, preserving all dependent records. Task titles must contain 3-150 non-whitespace characters; descriptions are limited to 2000 characters. Tasks use statuses `TODO`, `IN_PROGRESS`, and `DONE` and priorities `LOW`, `MEDIUM`, and `HIGH`; defaults are `TODO` and `MEDIUM`. Members can view/update tasks, while only managers can create/remove them or manage their assignments. Multiple active project members can be assigned to a task, with no duplicate assignment for the same user. Task comments show the author and date; members can add comments containing non-whitespace text of 1-2000 characters. Task lists support text, status, and priority filters, return current status counts, and are not paginated by the API contract.
 
 The frontend reads the Backend origin from the `matriz-api-base-url` meta tag in both `src/main/resources/static/index.html` and `src/main/resources/static/login.html`. The default is empty, which uses the current origin and is the recommended same-origin setup. If the Backend origin changes, set the same HTTP(S) origin in both files; cross-origin session cookies also require server-side CORS and cookie configuration.
 
-Demo users (fictitious credentials in `.env.example`):
+Demo users (fictitious credentials configured by these environment variables in `.env.example`):
 
 - `manager@matriz.local` / `MATRIZ_DEMO_MANAGER_PASSWORD`
 - `member@matriz.local` / `MATRIZ_DEMO_MEMBER_PASSWORD`
@@ -104,4 +130,4 @@ The `JSESSIONID` session cookie is HttpOnly and SameSite=Lax; the CSRF token is 
 
 ## Current project status
 
-The Spring Boot project, H2 persistence schema, session authentication, project/task management interface, overview counts, assignee management, comments, and project-scoped access checks are implemented. The application uses Java 25 and the Gradle Wrapper. The Exercise 7 browser walkthrough and remaining verification steps are tracked in [docs/implementation-plan.md](docs/implementation-plan.md); access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md).
+The Spring Boot project, H2 persistence schema, session authentication, project/task management interface, overview counts, assignee management, comments, and project-scoped access checks are implemented. Automated API and frontend auth regression checks are documented in [docs/verification.md](docs/verification.md). A clean build passes, but the latest application startup attempt could not be confirmed; the browser walkthrough and file-backed database restart check also remain outstanding. Do not treat these as verified until performed. The access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md).

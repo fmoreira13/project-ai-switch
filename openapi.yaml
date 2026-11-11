@@ -15,6 +15,26 @@ servers:
 security:
   - sessionCookie: []
 paths:
+  /api/health:
+    get:
+      summary: Check application health
+      description: Returns a simple health status and does not require authentication.
+      operationId: getHealth
+      security: []
+      tags:
+        - System
+      responses:
+        '200':
+          description: Application is available.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    const: ok
   /auth/csrf:
     get:
       summary: Obtain a CSRF token
@@ -61,7 +81,11 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Email or password is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
           $ref: '#/components/responses/Forbidden'
   /auth/me:
@@ -121,7 +145,10 @@ paths:
           $ref: '#/components/responses/InternalServerError'
     post:
       summary: Create project
-      description: Creates a new project.
+      description: >-
+        Creates a project for the authenticated user, who becomes its manager.
+        The trimmed name must contain 3-100 non-whitespace characters and be
+        unique without regard to case.
       operationId: createProject
       tags:
         - Projects
@@ -150,7 +177,9 @@ paths:
           $ref: '#/components/responses/InternalServerError'
     delete:
       summary: Remove project
-      description: Removes a project with no tasks after user confirmation. Projects with tasks are retained and return 409.
+      description: >-
+        Removes a project with no tasks after user confirmation. Only its
+        manager may remove it. Projects with tasks are retained and return 409.
       operationId: deleteProject
       tags:
         - Projects
@@ -204,7 +233,10 @@ paths:
           $ref: '#/components/responses/NotFound'
     put:
       summary: Update project
-      description: Replaces a project's name and description. Only a project manager may update it.
+      description: >-
+        Replaces a project's name and description. Only a project manager may
+        update it. The trimmed name must contain 3-100 non-whitespace
+        characters and be unique without regard to case.
       operationId: updateProject
       tags:
         - Projects
@@ -243,8 +275,8 @@ paths:
       summary: List or search tasks
       description: >-
         Returns unpaginated tasks accessible to the authenticated user. Optional status and
-        priority filters affect items; counts always describe the full accessible task set
-        before text, status, or priority filters are applied.
+        priority filters affect items; counts describe the full accessible task set within
+        the optional project scope, before text, status, or priority filters are applied.
       operationId: listOrSearchTasks
       tags:
         - Tasks
@@ -289,7 +321,10 @@ paths:
           $ref: '#/components/responses/InternalServerError'
     post:
       summary: Create task
-      description: Creates a new task associated with an existing project.
+      description: >-
+        Creates a task associated with an existing project. Only a project
+        manager may create it; the authenticated user supplies the project
+        access context. The title must contain 3-150 non-whitespace characters.
       operationId: createTask
       tags:
         - Tasks
@@ -354,6 +389,30 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Remove task (legacy route)
+      description: Legacy query-parameter route. Use DELETE /tasks/{taskId}. Only project managers may remove tasks.
+      deprecated: true
+      operationId: deleteTaskByQuery
+      tags:
+        - Tasks
+      parameters:
+        - in: query
+          name: taskId
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Task identifier.
+      responses:
+        '204':
+          description: Task removed successfully.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /tasks/{taskId}:
     get:
       summary: Get task details
@@ -418,7 +477,9 @@ paths:
           $ref: '#/components/responses/NotFound'
     delete:
       summary: Remove task
-      description: Removes a task and its dependent comments and assignment after user confirmation. Only project managers may remove tasks.
+      description: >-
+        Removes a task and its dependent comments and assignments after user
+        confirmation. Only project managers may remove tasks.
       operationId: deleteTask
       tags:
         - Tasks
@@ -495,6 +556,7 @@ paths:
           $ref: '#/components/responses/NotFound'
     post:
       summary: Add a comment to a task
+      description: The authenticated project member is recorded as author, and the server supplies the creation time.
       operationId: addTaskComment
       tags:
         - Tasks
@@ -651,6 +713,7 @@ components:
           type: string
           minLength: 3
           maxLength: 100
+          description: Trimmed, non-whitespace name; unique without regard to case.
         description:
           type: [string, 'null']
           maxLength: 1000
@@ -720,6 +783,7 @@ components:
           type: string
           minLength: 3
           maxLength: 100
+          description: Must contain 3-100 non-whitespace characters after trimming; unique without regard to case.
         description:
           type: [string, 'null']
           maxLength: 1000
@@ -732,6 +796,7 @@ components:
           type: string
           minLength: 3
           maxLength: 100
+          description: Must contain 3-100 non-whitespace characters after trimming; unique without regard to case.
         description:
           type: [string, 'null']
           maxLength: 1000
@@ -760,6 +825,7 @@ components:
           default: MEDIUM
     UpdateTaskRequest:
       type: object
+      minProperties: 1
       properties:
         title:
           type: string
@@ -874,6 +940,7 @@ components:
         counts:
           type: object
           required: [total, todo, inProgress, done]
+          description: Counts for the accessible task set within the optional project scope, before text, status, or priority filters are applied.
           properties:
             total:
               type: integer
@@ -897,10 +964,6 @@ components:
           type: string
         message:
           type: string
-        details:
-          type: array
-          items:
-            type: string
   responses:
     BadRequest:
       description: Request invalid.

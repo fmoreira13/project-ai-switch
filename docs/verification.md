@@ -30,6 +30,24 @@ Three focused integration tests were added to `MatrizAccessIntegrationTests`:
 
 The first full run exposed an incorrect expected error code in the new authorization test: the observed response was `PROJECT_ACCESS_DENIED`, while the test expected `ACCESS_DENIED`. `AccessService.requireMembership` confirms `PROJECT_ACCESS_DENIED` is the established response. The assertion was corrected; the application authorization behavior did not require a change. The full suite then passed.
 
+## Code review finding and regression test
+
+Reviewing the login UI against the API behavior exposed a frontend bug: `apiFetch` redirected every `401` to the expired-session page, including `POST /auth/login`. That prevented `login.js` from displaying its existing invalid-credentials message. The correction leaves login `401` responses with the login form while preserving redirects for unauthorized protected API requests.
+
+The regression tests in `src/test/js/auth.test.mjs` reproduce both branches with mocked HTTP responses: invalid credentials remain on the sign-in flow, while a protected API `401` redirects to sign-in. No production credentials or network calls are used by these tests.
+
+The clean-checkout review also found that the H2 URL in `.env.example` contains a semicolon and was unquoted even though the README sources the file as shell code. Quoting the value ensures the complete JDBC URL is loaded. A shell assertion verifies the sourced value without printing credentials.
+
+The code-quality opportunity was the duplicate `PathVariable` import in `ProjectController`; it was removed in a separate cleanup change. A larger frontend or service refactor was not applied because it would increase delivery risk without a focused behavior or maintainability gain for this exercise.
+
+## Examples of AI-assisted work
+
+| AI request objective | Programmer decision | Verification |
+|---|---|---|
+| Identify gaps in the nine Exercise 8 scenarios and propose focused tests. | Added separate tests for whitespace-only validation, authorization with another user's project ID, and create-then-read persistence. Did not claim that the in-memory persistence test proves survival across a process restart. | `./gradlew clean test`; the JUnit integration suite passed. Restart persistence remains explicitly marked unverified. |
+| Review the new authorization test and expected denial response. | Corrected the suggested generic `ACCESS_DENIED` expectation after the observed response and `AccessService` showed the established code is `PROJECT_ACCESS_DENIED`. This changed the test expectation, not the authorization implementation. | Re-ran the full JUnit suite; it passed with both unauthorized read and update checks returning `403 PROJECT_ACCESS_DENIED`. |
+| Review the sign-in and session flow for errors that could be misreported by the interface. | Confirmed and fixed the issue where a login `401` was treated as an expired authenticated session. Kept the redirect for `401` responses from protected resources. | `node --experimental-default-type=module --test src/test/js/auth.test.mjs` checks both login and protected-resource branches. |
+
 ## Commands and results
 
 Executed from the repository root on macOS:
@@ -37,7 +55,7 @@ Executed from the repository root on macOS:
 ```sh
 JAVA_HOME=$(/usr/libexec/java_home -v 25) \
 PATH="$(/usr/libexec/java_home -v 25)/bin:$PATH" \
-./gradlew test
+./gradlew clean test
 ```
 
 **Final result:** `BUILD SUCCESSFUL`; all 19 tests passed using Java 25.0.3. The tests use the configured in-memory H2 database.
@@ -53,6 +71,31 @@ git diff --check
 
 **Result:** all commands passed. These checks do not substitute for browser-based verification.
 
+Frontend auth regression tests:
+
+```sh
+node --experimental-default-type=module --test src/test/js/auth.test.mjs
+```
+
+**Result:** 2 tests passed, including the invalid-login regression and the protected-resource expired-session redirect.
+
+OpenAPI and review checks:
+
+```sh
+ruby -e 'require "yaml"; d = YAML.load_file("openapi.yaml"); abort "missing OpenAPI 3.1" unless d["openapi"] == "3.1.0"; abort "missing paths" unless d["paths"].is_a?(Hash) && d["paths"].any?; puts "OpenAPI YAML parsed: #{d["paths"].length} paths"'
+git diff --check
+```
+
+**Result:** OpenAPI YAML parsed with 13 paths, including the health check and implemented legacy task deletion route. The diff whitespace check passed.
+
+Environment example load check:
+
+```sh
+bash -c 'set -a; source .env.example; test "$MATRIZ_DB_URL" = "jdbc:h2:file:./data/matriz;DB_CLOSE_ON_EXIT=FALSE" && echo ".env.example shell load passed"'
+```
+
+**Result:** `.env.example` loads with the complete H2 JDBC URL.
+
 ## Manual checks and limitations
 
 No manual browser walkthrough or file-backed database restart was performed for Exercise 8. Therefore the following results remain unconfirmed in this report:
@@ -63,4 +106,6 @@ No manual browser walkthrough or file-backed database restart was performed for 
 - retaining form input after API failures and suppressing success messages on failed requests;
 - task survival after stopping and restarting the Backend against the file-backed H2 database.
 
-The automated integration suite is strong evidence for the tested API/service behavior, but the in-memory database means it cannot establish persistence across process restarts. Complete these manual checks against the local application before marking Exercise 8 fully verified.
+An application startup was attempted through the Java debugger on a temporary port with an in-memory database. The tool reported that the debug session started, but the health request could not connect and a subsequent session check found no active session. No startup log was available to diagnose the exit, so startup is not claimed as verified and no retry was attempted.
+
+The automated integration suite is strong evidence for the tested API/service behavior, but the in-memory database means it cannot establish persistence across process restarts. Complete these manual checks against the local application before marking the delivery fully verified.

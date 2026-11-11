@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation is in progress. The Exercise 7 interface now includes overview counts, project navigation, task details, shared API-origin configuration, loading/error states, and submission locking. Exercise 8 adds focused validation, authorization, and persisted-create/read integration tests; all 19 Java 25 tests and JavaScript syntax/diff checks pass. Browser walkthrough, file-backed database restart verification, and Redocly lint remain.
+Implementation is in progress. Exercise 7 provides the MVP interface, and Exercise 8 adds focused validation, authorization, and persisted-create/read integration tests. Exercise 9 corrected invalid-login handling, updated the OpenAPI and delivery instructions, and added a JavaScript regression suite. The clean Java build, frontend checks, and OpenAPI parse pass. A debugger startup was attempted but the health request could not connect and no diagnostic log was available; browser walkthrough, file-backed database restart verification, and OpenAPI lint remain.
 
 ## Scope and evidence
 
@@ -191,7 +191,15 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 - No unresolved decision is represented as an implemented business rule.
 - Documentation reflects the delivered behavior and current plan status.
 
-**Verification:** Full Java 25 test suite and JavaScript syntax/diff checks pass. Results and known limitations are recorded in [verification.md](verification.md). OpenAPI lint, browser walkthrough, and file-backed database restart check remain.
+**Verification:** Full Java 25 test suite, frontend auth regression tests, JavaScript syntax checks, and diff checks pass. Results and known limitations are recorded in [verification.md](verification.md). OpenAPI lint, browser walkthrough, and file-backed database restart check remain.
+
+### Exercise 9 - Review and prepare delivery
+
+**Status:** In progress; review found and fixed an invalid-login redirect bug, updated the contract and run documentation, and added AI decision examples to the verification report. The duplicate `PathVariable` import in `ProjectController` was removed as a separate, behavior-preserving cleanup. Clean Java/frontend checks pass; startup was attempted but remains unconfirmed. Final Git delivery commit remains.
+
+**Acceptance criteria:** API contract and docs describe implemented behavior; setup includes Java, configuration, schema/seed, demo users, app launch, and tests; verification records automated/manual results and three AI examples; only intended files are committed.
+
+**Verification:** Run a clean Gradle test build, frontend auth regressions, JavaScript syntax checks, OpenAPI parse/structure validation, startup according to the README where possible, and `git diff --check`. Browser and file-backed restart limitations must remain explicit if not performed.
 
 ## Plan maintenance
 
