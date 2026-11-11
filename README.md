@@ -94,6 +94,12 @@ Start the application from the repository root with Java 25 selected and `.env` 
 
 The local application is available at `http://localhost:8080`; health check: `http://localhost:8080/api/health`. The frontend is served by Spring Boot at `/` and `/login.html`.
 
+### VS Code Java setup
+
+Open the repository root (the directory containing `settings.gradle` and `build.gradle`), not `src/` by itself. The workspace enables Gradle Wrapper import and automatic Java build-configuration updates in `.vscode/settings.json`, and recommends the Java extension pack.
+
+If Spring imports still show as unresolved, install the recommended Java extensions, run **Java: Import Java Projects into Workspace** from the Command Palette, and wait for Gradle synchronization. If the diagnostic remains after synchronization, run **Java: Clean Java Language Server Workspace** and allow VS Code to restart and reimport the project. The `src/` “contains emphasized items” text is an Explorer accessibility/decorations hint that child items have diagnostics; it is not a source-code statement.
+
 To run checks from another terminal, select Java 25 there as well:
 
 ```sh
