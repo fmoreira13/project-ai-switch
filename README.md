@@ -37,6 +37,7 @@ The project documentation is organized as follows:
 - [docs/architecture.md](docs/architecture.md): simplified architecture pack aligned with the MVP.
 - [docs/database.md](docs/database.md): MVP data model.
 - [docs/implementation-plan.md](docs/implementation-plan.md): incremental implementation plan, decisions, acceptance criteria, and verification.
+- [docs/test-plan.md](docs/test-plan.md): requirement-based task validation, creation/consultation, and access-control scenarios.
 - [docs/verification.md](docs/verification.md): expected and observed Exercise 8 results, automated test evidence, and user-reported manual checks.
 - [docs/ui/wireframe.png](docs/ui/wireframe.png): visual prototype of the MVP project and task management flow.
 
