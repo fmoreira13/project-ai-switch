@@ -1,0 +1,13 @@
+.env
+.env.*
+.git
+.gradle
+.idea
+.vscode
+build
+data
+node_modules
+playwright-report
+target
+test-results
+src/test

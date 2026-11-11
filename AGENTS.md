@@ -86,6 +86,19 @@ npm run test:e2e
 
 The Playwright configuration starts the application on port 18080 with an isolated in-memory H2 database and fictitious test passwords. It does not use or alter the local `data/` database or `.env`.
 
+Run the Docker Compose app after creating and reviewing `.env` from `.env.example`:
+
+```sh
+docker compose config --quiet
+docker compose up --build -d
+curl --fail http://localhost:8080/api/health
+docker compose down
+```
+
+Compose uses a named volume for its file-backed H2 data. `docker compose down` preserves it; do not use `docker compose down --volumes` unless intentionally deleting that database. The `.env` file is runtime-only and excluded from the image build context.
+
+GitHub Actions runs the same Java, frontend, and Playwright checks and builds the container image for pushes to `main` and pull requests. It does not publish images.
+
 The file-backed local H2 database is stored under the ignored `data/` directory. Do not remove or reset it unless the user explicitly requests that action. Test configuration uses an in-memory database and does not change the local database.
 
 ## Scope limits

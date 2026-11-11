@@ -40,6 +40,7 @@ The project documentation is organized as follows:
 - [docs/test-plan.md](docs/test-plan.md): requirement-based task validation, creation/consultation, and access-control scenarios.
 - [docs/quality-security-review.md](docs/quality-security-review.md): bounded code/security review results, authorization evidence, and known verification limits.
 - [playwright.config.js](playwright.config.js) and [e2e/](e2e/): repeatable browser-based end-to-end checks using an isolated in-memory H2 database.
+- [Dockerfile](Dockerfile), [compose.yaml](compose.yaml), and [.github/workflows/ci.yml](.github/workflows/ci.yml): container build/run and automated GitHub verification.
 - [docs/verification.md](docs/verification.md): expected and observed Exercise 8 results, automated test evidence, and user-reported manual checks.
 - [docs/ui/wireframe.png](docs/ui/wireframe.png): visual prototype of the MVP project and task management flow.
 
@@ -50,6 +51,7 @@ The project documentation is organized as follows:
 - Gradle Wrapper; use `./gradlew` rather than a system Maven or Gradle installation.
 - Spring Data JPA and H2.
 - Plain HTML, CSS, and JavaScript for the frontend.
+- Docker and Docker Compose for a reproducible single-container local run.
 
 ## Requirements
 
@@ -57,6 +59,19 @@ The project documentation is organized as follows:
 - Git to clone the repository.
 - Network access on the first Gradle Wrapper run to download Gradle and dependencies.
 - Node.js 22 or later is needed for the frontend auth regression and Playwright end-to-end test commands. The application itself needs no Node.js runtime.
+- Docker Engine and the Docker Compose CLI plugin are needed only for container commands.
+
+## Architecture and external dependencies
+
+The application is a single Spring Boot modular monolith:
+
+- The static HTML/CSS/JavaScript UI lives under `src/main/resources/static` and is served by Spring Boot.
+- REST controllers in `com.matriz.api` expose the project, task, and authentication APIs. Services apply validation and project-scoped access rules; Spring Security uses server-side HTTP sessions.
+- Spring Data JPA repositories persist the domain entities. `src/main/resources/schema.sql` initializes the schema, and `DemoDataInitializer` creates missing fictitious demo records.
+- H2 is embedded. Local execution uses a file database under `data/`; integration tests and E2E use isolated in-memory databases. Docker Compose uses a named volume for its file-backed H2 database.
+- JUnit 5/MockMvc cover backend unit and integration behavior; Node's test runner covers frontend auth regressions; Playwright covers the browser journey.
+
+There are no third-party services required at application runtime. Build/test setup downloads dependencies from Gradle/Maven Central, npm, Playwright's browser distribution, and the Docker image registry. GitHub Actions runs CI but is not a runtime dependency. The Gradle plugin pins Spring Boot 4.0.9; the Wrapper pins Gradle 9.8.2; Java toolchains target 25; the E2E development dependency is Playwright 1.65.0.
 
 ## Install and configure
 
@@ -81,6 +96,8 @@ set +a
 
 `.env.example` contains variables for the H2 URL and credentials, the two fictitious demo passwords, and the session-cookie Secure flag. `.env` is ignored by Git; do not commit real credentials. The example values are for local demonstration only.
 
+The application configuration variables are `MATRIZ_DB_URL`, `MATRIZ_DB_USERNAME`, `MATRIZ_DB_PASSWORD`, `MATRIZ_DEMO_MANAGER_PASSWORD`, `MATRIZ_DEMO_MEMBER_PASSWORD`, and `MATRIZ_SESSION_COOKIE_SECURE`. Defaults and demo-only values are shown in `.env.example`; change the demo passwords before use and do not treat them as production credentials.
+
 ## Schema and demonstration data
 
 On the first application start, Spring executes `src/main/resources/schema.sql`, which creates or updates the H2 schema idempotently; Hibernate validates the mapped schema. No separate migration command is required. `DemoDataInitializer` creates two demo accounts, memberships, projects, and sample task data only when those records are absent. It does not reset or delete user data on subsequent starts.
@@ -96,6 +113,27 @@ Start the application from the repository root with Java 25 selected and `.env` 
 ```
 
 The local application is available at `http://localhost:8080`; health check: `http://localhost:8080/api/health`. The frontend is served by Spring Boot at `/` and `/login.html`.
+
+### Run with Docker Compose
+
+Docker Compose runs the same Spring Boot application in one container. H2 is embedded, so no separate database service is needed. The named `matriz-data` volume preserves the file-backed H2 database across container restarts and ordinary `docker compose down`.
+
+Create the ignored `.env` file and review/change the fictitious demo passwords before starting:
+
+```sh
+test -f .env || cp .env.example .env
+docker compose config --quiet
+docker compose up --build -d
+curl --fail http://localhost:8080/api/health
+```
+
+The Compose file injects only the configured runtime environment variables; `.env` is excluded from the Docker build context and is never copied into the image. Container data is stored in the named volume mounted at `/app/data`, not the repository's `data/` directory. To stop the app while preserving its database, run:
+
+```sh
+docker compose down
+```
+
+Do not use `docker compose down --volumes` unless intentionally deleting the container database. The sample credentials are for local demonstration only, not production deployment.
 
 ### VS Code Java setup
 
@@ -124,6 +162,10 @@ npm run test:e2e
 ```
 
 The E2E runner starts a separate application instance on port `18080` using an isolated in-memory database and fictitious test credentials. It does not use or alter the local `data/` database or `.env`.
+
+### GitHub Actions
+
+The [CI workflow](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It uses Java 25 and Node.js 22 to run JUnit, frontend syntax/auth checks, and Playwright Chromium E2E, then builds the Docker image. It uses no repository secrets and does not publish an image to a registry.
 
 After signing in, use `http://localhost:8080/` to create, list, search, inspect, edit, and remove projects and tasks. Project names must contain 3-100 characters and are unique after trimming, without regard to case; descriptions are limited to 1000 characters. Projects with tasks cannot be removed and return a conflict, preserving all dependent records. Task titles must contain 3-150 non-whitespace characters; descriptions are limited to 2000 characters. Tasks use statuses `TODO`, `IN_PROGRESS`, and `DONE` and priorities `LOW`, `MEDIUM`, and `HIGH`; defaults are `TODO` and `MEDIUM`. Members can view/update tasks, while only managers can create/remove them or manage their assignments. Multiple active project members can be assigned to a task, with no duplicate assignment for the same user. Task comments show the author and date; members can add comments containing non-whitespace text of 1-2000 characters. Task lists support text, status, and priority filters, return current status counts, and are not paginated by the API contract.
 

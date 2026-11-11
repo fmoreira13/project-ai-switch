@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: matriz:local
+    ports:
+      - "8080:8080"
+    environment:
+      MATRIZ_DB_URL: "jdbc:h2:file:/app/data/matriz;DB_CLOSE_ON_EXIT=FALSE"
+      MATRIZ_DB_USERNAME: "${MATRIZ_DB_USERNAME:-sa}"
+      MATRIZ_DB_PASSWORD: "${MATRIZ_DB_PASSWORD:-}"
+      MATRIZ_DEMO_MANAGER_PASSWORD: "${MATRIZ_DEMO_MANAGER_PASSWORD:?Set MATRIZ_DEMO_MANAGER_PASSWORD in .env}"
+      MATRIZ_DEMO_MEMBER_PASSWORD: "${MATRIZ_DEMO_MEMBER_PASSWORD:?Set MATRIZ_DEMO_MEMBER_PASSWORD in .env}"
+      MATRIZ_SESSION_COOKIE_SECURE: "${MATRIZ_SESSION_COOKIE_SECURE:-false}"
+    volumes:
+      - matriz-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  matriz-data:

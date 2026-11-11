@@ -1,0 +1,54 @@
+name: Matriz CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: gradle
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Java tests
+        run: ./gradlew --no-daemon clean test
+
+      - name: Check frontend JavaScript
+        run: |
+          node --check src/main/resources/static/js/auth.js
+          node --check src/main/resources/static/js/login.js
+          node --check src/main/resources/static/js/index.js
+          node --experimental-default-type=module --test src/test/js/auth.test.mjs
+
+      - name: Run browser end-to-end test
+        run: npm run test:e2e
+
+      - name: Validate Docker Compose configuration
+        run: docker compose --env-file .env.example config --quiet
+
+      - name: Build container image
+        run: docker build --tag matriz:ci .
