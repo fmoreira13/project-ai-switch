@@ -19,6 +19,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -767,10 +768,12 @@ class MatrizAccessIntegrationTests {
     }
 
     @Test
-    void exercise8CreatedTaskCanBeReadBackFromPersistence() throws Exception {
+    @Transactional
+    void exercise3CreatesTaskReadsItBackAndRejectsInvalidTitle() throws Exception {
         Project alpha = projects.findByName("Matriz Demo - Alpha").orElseThrow();
         MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
         String title = "Persistence check " + java.util.UUID.randomUUID();
+        long tasksBefore = tasks.count();
 
         MvcResult created = mockMvc.perform(post("/tasks")
                         .session(manager)
@@ -780,17 +783,38 @@ class MatrizAccessIntegrationTests {
                                 {"projectId":"%s","title":"%s"}
                                 """.formatted(alpha.getId(), title)))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.projectId").value(alpha.getId().toString()))
                 .andExpect(jsonPath("$.title").value(title))
+                .andExpect(jsonPath("$.status").value("TODO"))
+                .andExpect(jsonPath("$.priority").value("MEDIUM"))
                 .andReturn();
         String taskId = com.jayway.jsonpath.JsonPath.read(
                 created.getResponse().getContentAsString(), "$.id");
         java.util.UUID taskUuid = java.util.UUID.fromString(taskId);
 
-        assertTrue(tasks.findById(taskUuid).isPresent());
+        Task persisted = tasks.findById(taskUuid).orElseThrow();
+        assertEquals(title, persisted.getTitle());
+        assertEquals(alpha.getId(), persisted.getProject().getId());
+        assertEquals(1, tasks.count() - tasksBefore);
+
         mockMvc.perform(get("/tasks/{taskId}", taskId).session(manager))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(taskId))
-                .andExpect(jsonPath("$.title").value(title));
+                .andExpect(jsonPath("$.projectId").value(alpha.getId().toString()))
+                .andExpect(jsonPath("$.title").value(title))
+                .andExpect(jsonPath("$.status").value("TODO"))
+                .andExpect(jsonPath("$.priority").value("MEDIUM"));
+
+        mockMvc.perform(post("/tasks")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"projectId":"%s","title":"   "}
+                                """.formatted(alpha.getId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        assertEquals(1, tasks.count() - tasksBefore);
     }
 
     @Test

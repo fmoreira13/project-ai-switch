@@ -59,9 +59,23 @@ Focused command:
 
 Result: passed on 2026-11-11 (3 JUnit tests, 0 failures). The assertions exercise the declared request constraints, not `TaskService`'s trimming behavior; the separate API integration tests cover service-level rejection of a short title after trimming. The rule was not changed to satisfy the tests.
 
+## Integration test: create and consult a task
+
+`exercise3CreatesTaskReadsItBackAndRejectsInvalidTitle` in [MatrizAccessIntegrationTests.java](../src/test/java/com/matriz/MatrizAccessIntegrationTests.java) exercises the API using MockMvc and the project's Spring Boot test context with in-memory H2. It logs in as the manager of the seeded Alpha project, submits a valid task through `POST /tasks` with CSRF, then requests the returned ID through `GET /tasks/{taskId}`.
+
+The test checks HTTP `201` then `200`, the ID, project association, title, and default `TODO` status and `MEDIUM` priority in the API responses; it also confirms the saved entity is present in the repository. Its negative step submits a whitespace-only title and expects HTTP `400` with `VALIDATION_ERROR`, while asserting that the invalid request added no task. The test method is transactional and rolls back its changes after execution, so its created task does not accumulate between runs; the in-memory database is isolated from local `data/`.
+
+Focused command:
+
+```sh
+./gradlew test --tests 'com.matriz.MatrizAccessIntegrationTests.exercise3CreatesTaskReadsItBackAndRejectsInvalidTitle'
+```
+
+Result: passed on 2026-11-11 (1 JUnit integration test, 0 failures). This verifies database persistence and retrieval through the API within a controlled test context; it does not claim that this test restarts the Backend or verifies the local file-backed database across restarts.
+
 ## Review notes and limits
 
 - The invalid-title input is deliberately whitespace-only: a title such as `"   "` may satisfy a simple string-length check while violating the user story's non-whitespace requirement. A short mixed-space title additionally checks trimming does not turn an otherwise too-short value into a valid title.
 - The create-and-consult case verifies persistence across separate API requests in one test context. Because that context uses in-memory H2, it does not prove persistence after restarting the application; restart persistence is a separate manual scenario.
 - The unauthorized case uses an authenticated user without project membership. An unauthenticated request (`401`) and a project member attempting a manager-only operation are useful additional cases, but were not selected as one of the three essential cases for this exercise.
-- Existing coverage is in [MatrizAccessIntegrationTests.java](../src/test/java/com/matriz/MatrizAccessIntegrationTests.java): `taskCrudFiltersValidationAndCountsFollowMvpContract` already checks whitespace task titles, `exercise8CreatedTaskCanBeReadBackFromPersistence` covers create/read, and `exercise8RejectsAccessToAnotherUsersProjectEvenWithItsId` covers denial on a project resource. The plan makes the selected task behavior and its expected evidence explicit; the project-level authorization test is not a substitute for the task-specific `GET /tasks/{taskId}` scenario.
+- Existing coverage is in [MatrizAccessIntegrationTests.java](../src/test/java/com/matriz/MatrizAccessIntegrationTests.java): `taskCrudFiltersValidationAndCountsFollowMvpContract` checks trimmed-short task titles, `exercise3CreatesTaskReadsItBackAndRejectsInvalidTitle` covers the Exercise 3 create/read/invalid-title flow, and `exercise8RejectsAccessToAnotherUsersProjectEvenWithItsId` covers denial on a project resource. The project-level authorization test is not a substitute for the task-specific `GET /tasks/{taskId}` scenario.
