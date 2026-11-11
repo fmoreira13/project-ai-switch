@@ -176,7 +176,9 @@ The E2E runner starts a separate application instance on port `18080` using an i
 
 ### GitHub Actions
 
-The [CI workflow](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. Its `verify` job uses Java 25 and Node.js 22 to run JUnit, frontend syntax/auth checks, Playwright Chromium E2E, and Compose configuration validation. The separate `build-image` job has `needs: verify`, so it cannot build the Docker image unless every verification step succeeds. Workflow permissions are read-only (`contents: read`); it uses no repository secrets and does not publish an image to a registry.
+The [CI workflow](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. Its `verify` job uses Java 25 and Node.js 22 to run JUnit, frontend syntax/auth checks, Playwright Chromium E2E, and Compose configuration validation. The separate `build-image` job has `needs: verify`, builds the image, then scans its operating-system packages with Trivy. The scan fails the job for HIGH or CRITICAL findings, including vulnerabilities without a known fix. It does not scan application-library dependencies. Workflow permissions are read-only (`contents: read`); it uses no repository secrets and does not publish an image to a registry.
+
+The first local Trivy scan found two HIGH entries for `CVE-2026-109518` in the Java runtime base image's `apt` packages. The Dockerfile now applies available OS package updates during the image build; rescanning the rebuilt image with Trivy 0.70.0 reported no HIGH or CRITICAL OS findings. The updated GitHub Actions workflow still needs a push-triggered run to verify the scan on its runner.
 
 On 2026-11-11, the first Actions run failed on an exact timestamp-string comparison in a comment integration test, and correctly skipped `build-image`. The test was made tolerant of equivalent timestamp serialization; the subsequent run passed both jobs. See the [successful Actions run](https://github.com/fmoreira13/project-ai-switch/actions/runs/43092399460). A separate temporary-failure check was also performed locally; it is not a claim that the Actions run itself used an injected failure.
 

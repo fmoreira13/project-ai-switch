@@ -14,6 +14,8 @@ The `0.x` version indicates an initial pre-1.0 product milestone; `rc.1` identif
 - Exercise-only task assignment and comments.
 - File-backed H2 persistence for local use and a named persistent volume for Docker Compose.
 - OpenAPI contract for the HTTP API at [`../openapi.yaml`](../openapi.yaml).
+- CI scans operating-system packages in the built container image with Trivy and blocks on HIGH or CRITICAL vulnerabilities.
+- The runtime image upgrades its base operating-system packages during build to include available security updates.
 
 ## Verification evidence
 
@@ -33,6 +35,8 @@ See the [GitHub Actions run](https://github.com/fmoreira13/project-ai-switch/act
 - H2, demo accounts, and manager/member access are exercise choices. Demo credentials must not be used as production credentials.
 - Comments and task assignments are exercise extensions, not confirmed product MVP requirements.
 - The CI workflow builds an image but does not publish it to a registry.
+- A local Trivy 0.70.0 scan of the rebuilt image found no HIGH/CRITICAL OS findings after the Dockerfile security update. The first GitHub Actions result for this change is pending and is not included in the earlier successful run.
+- This initial scan does not cover application-library dependencies.
 - No configured static-analysis/SAST scanner was run; see [`quality-security-review.md`](quality-security-review.md).
 - The Gradle artifact version is still `0.0.1-SNAPSHOT`. The proposed candidate version is documentation only and has not been applied to the build or tagged in Git.
 

@@ -33,9 +33,11 @@ The test also confirms the stored task title is unchanged after the rejected upd
 
 The existing project-level cross-account test is `exercise8RejectsAccessToAnotherUsersProjectEvenWithItsId` in [MatrizAccessIntegrationTests.java](../src/test/java/com/matriz/MatrizAccessIntegrationTests.java).
 
-### Static analysis
+### Static analysis and image scanning
 
-No configured ESLint, Semgrep, SonarQube, SpotBugs, or equivalent static-analysis/SAST tool was found in the project configuration. No scanner was installed or run. This is a tooling limitation, not evidence that the code passed a SAST scan.
+No configured ESLint, Semgrep, SonarQube, SpotBugs, or equivalent source-code static-analysis/SAST tool was found in the project configuration. The CI now scans the built container image with Trivy for operating-system package vulnerabilities, failing on HIGH and CRITICAL findings (including unfixed ones). Application-library dependencies are not included; this image scan does not replace dependency analysis or source-code SAST.
+
+The first local Trivy scan found two HIGH entries for the same issue, `CVE-2026-109518`, in `apt` and `libapt-pkg7.0` in the Java runtime base image (installed `3.2.0`, fixed `3.2.1ubuntu0.1`). The runtime image build now applies available OS package upgrades before copying in the application. After a clean no-cache rebuild, Trivy 0.70.0 reported zero HIGH/CRITICAL OS findings for the rebuilt Ubuntu 26.04 image. The corresponding GitHub Actions scan has not yet run.
 
 ## Executed verification
 

@@ -93,7 +93,7 @@ The application checks access on server-side API operations, including direct re
 - Frontend auth regression tests: `node --experimental-default-type=module --test src/test/js/auth.test.mjs`.
 - Browser E2E: `npm ci`, `npx playwright install chromium`, then `npm run test:e2e`.
 - Container run: `docker compose config --quiet`, `docker compose build`, then `docker compose up -d`.
-- CI: `.github/workflows/ci.yml` runs verification before the dependent Docker image build. It does not publish an image.
+- CI: `.github/workflows/ci.yml` runs verification before the dependent Docker image build and Trivy operating-system package vulnerability scan. The scan fails on HIGH or CRITICAL findings and does not publish an image. Application-library dependencies are outside this scan's scope.
 
 The README contains complete setup, environment, test, and Compose commands. The OpenAPI document is the HTTP contract; no separate API server or generated documentation site is configured.
 
