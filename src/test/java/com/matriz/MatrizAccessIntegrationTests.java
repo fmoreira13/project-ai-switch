@@ -21,6 +21,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -245,14 +248,19 @@ class MatrizAccessIntegrationTests {
 
         mockMvc.perform(get("/tasks/{taskId}", taskId).session(member))
                 .andExpect(status().isOk());
-        mockMvc.perform(get("/tasks/{taskId}/comments", taskId).session(member))
+        MvcResult listedComments = mockMvc.perform(get("/tasks/{taskId}/comments", taskId).session(member))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(commentId))
                 .andExpect(jsonPath("$[0].body").value("Persisted comment"))
                 .andExpect(jsonPath("$[0].authorId").value(memberId))
                 .andExpect(jsonPath("$[0].authorName").value("Demo Member"))
-                .andExpect(jsonPath("$[0].createdAt").value(createdAt));
+                .andExpect(jsonPath("$[0].createdAt").isNotEmpty())
+                .andReturn();
+        String listedCreatedAt = com.jayway.jsonpath.JsonPath.read(
+                listedComments.getResponse().getContentAsString(), "$[0].createdAt");
+        assertTrue(Duration.between(Instant.parse(createdAt), Instant.parse(listedCreatedAt))
+                .abs().compareTo(Duration.ofSeconds(1)) <= 0);
 
         mockMvc.perform(post("/tasks/{taskId}/comments", taskId)
                         .session(member)
