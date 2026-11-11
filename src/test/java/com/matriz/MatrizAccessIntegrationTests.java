@@ -732,6 +732,68 @@ class MatrizAccessIntegrationTests {
     }
 
     @Test
+    void exercise8RejectsWhitespaceOnlyProjectNames() throws Exception {
+        MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
+
+        mockMvc.perform(post("/projects")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"   "}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void exercise8RejectsAccessToAnotherUsersProjectEvenWithItsId() throws Exception {
+        Project beta = projects.findByName("Matriz Demo - Beta").orElseThrow();
+        MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
+
+        mockMvc.perform(get("/projects/{projectId}", beta.getId()).session(manager))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("PROJECT_ACCESS_DENIED"));
+
+        mockMvc.perform(put("/projects/{projectId}", beta.getId())
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Unauthorized project change"}
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("PROJECT_ACCESS_DENIED"));
+    }
+
+    @Test
+    void exercise8CreatedTaskCanBeReadBackFromPersistence() throws Exception {
+        Project alpha = projects.findByName("Matriz Demo - Alpha").orElseThrow();
+        MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
+        String title = "Persistence check " + java.util.UUID.randomUUID();
+
+        MvcResult created = mockMvc.perform(post("/tasks")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"projectId":"%s","title":"%s"}
+                                """.formatted(alpha.getId(), title)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value(title))
+                .andReturn();
+        String taskId = com.jayway.jsonpath.JsonPath.read(
+                created.getResponse().getContentAsString(), "$.id");
+        java.util.UUID taskUuid = java.util.UUID.fromString(taskId);
+
+        assertTrue(tasks.findById(taskUuid).isPresent());
+        mockMvc.perform(get("/tasks/{taskId}", taskId).session(manager))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(taskId))
+                .andExpect(jsonPath("$.title").value(title));
+    }
+
+    @Test
     void demoDataIsPresentAndInitializerDoesNotDuplicateOrDeleteIt() throws Exception {
         assertTrue(users.count() >= 2);
         assertTrue(projects.count() >= 2);

@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation is in progress. The Exercise 7 interface now includes overview counts, project navigation, task details, shared API-origin configuration, loading/error states, and submission locking. Java 25 tests, JavaScript syntax, OpenAPI structure/path checks, and disposable H2 migration checks pass; the browser walkthrough and Redocly lint remain.
+Implementation is in progress. The Exercise 7 interface now includes overview counts, project navigation, task details, shared API-origin configuration, loading/error states, and submission locking. Exercise 8 adds focused validation, authorization, and persisted-create/read integration tests; all 19 Java 25 tests and JavaScript syntax/diff checks pass. Browser walkthrough, file-backed database restart verification, and Redocly lint remain.
 
 ## Scope and evidence
 
@@ -179,7 +179,7 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 
 ### Increment 5 - End-to-end verification and handoff
 
-**Status:** In progress; automated task CRUD/access/filter, multi-assignee, and comment checks pass, as do the current Java and JavaScript checks. Complete the final browser walkthrough; optional Redocly lint remains.
+**Status:** In progress; Exercise 8 automated cases and the full Java test suite pass. Browser walkthrough and file-backed database restart verification remain.
 
 **Components/files:** Automated test suite, OpenAPI contract, README, architecture, data model, and implementation plan.
 
@@ -191,7 +191,7 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 - No unresolved decision is represented as an implemented business rule.
 - Documentation reflects the delivered behavior and current plan status.
 
-**Verification:** Run the full configured test suite, OpenAPI lint, and a documented end-to-end manual walkthrough; review `git diff` for scope and consistency.
+**Verification:** Full Java 25 test suite and JavaScript syntax/diff checks pass. Results and known limitations are recorded in [verification.md](verification.md). OpenAPI lint, browser walkthrough, and file-backed database restart check remain.
 
 ## Plan maintenance
 
