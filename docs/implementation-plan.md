@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation is in progress. Exercise 7 provides the MVP interface, and Exercise 8 adds focused validation, authorization, and persisted-create/read integration tests. Exercise 9 corrected invalid-login handling, updated the OpenAPI and delivery instructions, and added a JavaScript regression suite. The clean Java build, frontend checks, and OpenAPI parse pass. A debugger startup was attempted but the health request could not connect and no diagnostic log was available; browser walkthrough, file-backed database restart verification, and OpenAPI lint remain.
+Implementation is complete for the current exercise scope. Automated Java and frontend checks pass. The user confirmed that the application opens, task data survives Backend restart, and manually tested project editing/deletion, filters, assignment add/remove, status/priority changes and count updates, validation/error feedback, and comment author/date after reopening. Detailed evidence is recorded in [verification.md](verification.md); API authorization is covered by automated integration tests.
 
 ## Scope and evidence
 
@@ -120,7 +120,7 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 
 ### Increment 3 - Implement the approved API operations
 
-**Status:** In progress; project/task operations, multi-assignee selection/removal, task comments, and the session lifecycle are implemented. Integration tests cover assignment eligibility, duplicates, individual removal, comment validation, backend-derived authorship/time, and reload queries.
+**Status:** Done; project/task operations, multi-assignee selection/removal, task comments, and the session lifecycle are implemented. Integration tests cover assignment eligibility, duplicates, individual removal, comment validation, backend-derived authorship/time, and reload queries.
 
 **Components/files:** Spring Boot REST controllers and request/response DTOs for the approved operations; `openapi.yaml` remains the contract source for review.
 
@@ -149,7 +149,7 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 
 ### Increment 4 - Implement the MVP interface
 
-**Status:** In progress; sign-in/session guard, project/task management, overview counts, assignee selection/removal, task detail expansion, and task comment interface are implemented. Automated validation of this increment and the final browser walkthrough remain.
+**Status:** Done; sign-in/session guard, project/task management, overview counts, assignee selection/removal, task detail expansion, and task comment interface are implemented. Automated checks pass, and the user reports successful browser verification for the remaining UI scenarios; details are recorded in [verification.md](verification.md).
 
 **Components/files:** Static HTML/CSS/JavaScript views based on [wireframe.png](ui/wireframe.png).
 
@@ -175,11 +175,11 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 - Empty results and API validation errors are presented clearly.
 - Do not add a UI for roles, comments, or assignments beyond the approved exercise scope.
 
-**Verification:** JavaScript syntax validation, `git diff --check`, and the Java 25 test suite pass. Earlier project create/list/detail, reload, and backend-restart behavior was checked in a browser. The overview, task-detail, dashboard navigation, and Exercise 6 assignee/comment flows and remaining project error/confirmation states still need a manual browser walkthrough.
+**Verification:** JavaScript syntax validation, `git diff --check`, and the Java 25 test suite pass. User-reported browser checks and automated API checks are recorded in [verification.md](verification.md).
 
 ### Increment 5 - End-to-end verification and handoff
 
-**Status:** In progress; Exercise 8 automated cases and the full Java test suite pass. Browser walkthrough and file-backed database restart verification remain.
+**Status:** Done for the documented MVP and exercise scenarios based on automated checks and user-reported browser verification.
 
 **Components/files:** Automated test suite, OpenAPI contract, README, architecture, data model, and implementation plan.
 
@@ -191,15 +191,15 @@ These are decision gates, not assumptions. Do not implement the affected behavio
 - No unresolved decision is represented as an implemented business rule.
 - Documentation reflects the delivered behavior and current plan status.
 
-**Verification:** Full Java 25 test suite, frontend auth regression tests, JavaScript syntax checks, and diff checks pass. Results and known limitations are recorded in [verification.md](verification.md). OpenAPI lint, browser walkthrough, and file-backed database restart check remain.
+**Verification:** Full Java 25 test suite, frontend auth regression tests, JavaScript syntax checks, OpenAPI YAML parse, and diff checks pass. User-reported browser checks include project edit/deletion, task filters, assignment add/remove, status/priority/count updates, validation/error behavior, comment author/date after reopening, and task persistence after Backend restart. See [verification.md](verification.md).
 
 ### Exercise 9 - Review and prepare delivery
 
-**Status:** In progress; review found and fixed an invalid-login redirect bug, updated the contract and run documentation, and added AI decision examples to the verification report. The duplicate `PathVariable` import in `ProjectController` was removed as a separate, behavior-preserving cleanup. Clean Java/frontend checks pass; startup was attempted but remains unconfirmed. Final Git delivery commit remains.
+**Status:** Done; review found and fixed an invalid-login redirect bug, updated the contract and run documentation, and added AI decision examples to the verification report. The duplicate `PathVariable` import in `ProjectController` was removed as a separate, behavior-preserving cleanup. Clean Java/frontend checks pass, and the user confirmed the application runs and the browser/restart scenarios listed in [verification.md](verification.md).
 
 **Acceptance criteria:** API contract and docs describe implemented behavior; setup includes Java, configuration, schema/seed, demo users, app launch, and tests; verification records automated/manual results and three AI examples; only intended files are committed.
 
-**Verification:** Run a clean Gradle test build, frontend auth regressions, JavaScript syntax checks, OpenAPI parse/structure validation, startup according to the README where possible, and `git diff --check`. Browser and file-backed restart limitations must remain explicit if not performed.
+**Verification:** Clean Gradle test build, frontend auth regressions, JavaScript syntax checks, OpenAPI parse/structure validation, environment-example loading, `git diff --check`, and user-reported application/browser/restart checks completed. Details are in [verification.md](verification.md).
 
 ## Plan maintenance
 

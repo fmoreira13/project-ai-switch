@@ -37,7 +37,7 @@ The project documentation is organized as follows:
 - [docs/architecture.md](docs/architecture.md): simplified architecture pack aligned with the MVP.
 - [docs/database.md](docs/database.md): MVP data model.
 - [docs/implementation-plan.md](docs/implementation-plan.md): incremental implementation plan, decisions, acceptance criteria, and verification.
-- [docs/verification.md](docs/verification.md): expected and observed Exercise 8 results, test evidence, and remaining manual checks.
+- [docs/verification.md](docs/verification.md): expected and observed Exercise 8 results, automated test evidence, and user-reported manual checks.
 - [docs/ui/wireframe.png](docs/ui/wireframe.png): visual prototype of the MVP project and task management flow.
 
 ## Technology
@@ -136,4 +136,4 @@ The `JSESSIONID` session cookie is HttpOnly and SameSite=Lax; the CSRF token is 
 
 ## Current project status
 
-The Spring Boot project, H2 persistence schema, session authentication, project/task management interface, overview counts, assignee management, comments, and project-scoped access checks are implemented. Automated API and frontend auth regression checks are documented in [docs/verification.md](docs/verification.md). A clean build passes, but the latest application startup attempt could not be confirmed; the browser walkthrough and file-backed database restart check also remain outstanding. Do not treat these as verified until performed. The access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md).
+The Spring Boot project, H2 persistence schema, session authentication, project/task management interface, overview counts, assignee management, comments, and project-scoped access checks are implemented. Automated API/frontend checks and user-reported browser/restart checks are documented in [docs/verification.md](docs/verification.md). The user confirmed project edit/deletion, task filters, assignment add/remove, status/priority/count updates, validation/error feedback, comment author/date after reopening, and data surviving a Backend restart. API authorization is covered by automated integration tests. The access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md).
