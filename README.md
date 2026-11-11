@@ -2,7 +2,7 @@
 
 ## Project presentation
 
-Matriz is a proposal for a project and task management application for work teams. The main goal is to facilitate work organization, improve team coordination, and allow monitoring of progress for tasks and projects.
+Matriz is a web application for work teams to organize projects and tasks, track progress, and coordinate work. It is implemented as a Spring Boot application that serves both the browser interface and the HTTP API.
 
 ## Problem it aims to solve
 
@@ -15,15 +15,15 @@ Work teams often need to coordinate multiple projects, distribute tasks, track s
 - track the status of work;
 - improve the team's visibility into what is in progress.
 
-## Features planned for the MVP
+## Implemented capabilities
 
 - project creation;
-- task creation per project;
-- project and task listing;
-- task status update;
-- project and task removal;
-- simple task search;
-- general overview of ongoing work.
+- project and task listing, consultation, editing, and removal;
+- task status and priority updates, search and filters, and project/task overview counts;
+- project membership with exercise-only manager/member access rules;
+- multiple task assignees and task comments, as implementation-exercise extensions.
+
+The access rules, comments, and assignments are implementation-exercise scope; they are not confirmed production requirements. See [docs/requirements.md](docs/requirements.md), [docs/user-stories.md](docs/user-stories.md), and [docs/constraints.md](docs/constraints.md).
 
 ## Documentation organization
 
@@ -34,8 +34,10 @@ The project documentation is organized as follows:
 - [docs/requirements.md](docs/requirements.md): overview, goals, requirements, and scope of the MVP.
 - [docs/user-stories.md](docs/user-stories.md): user stories, acceptance criteria, and edge cases.
 - [docs/constraints.md](docs/constraints.md): constraints, assumptions, and scope limitations.
-- [docs/architecture.md](docs/architecture.md): simplified architecture pack aligned with the MVP.
+- [docs/architecture.md](docs/architecture.md): implemented architecture, data flow, deployment, and Mermaid diagram.
 - [docs/database.md](docs/database.md): MVP data model.
+- [CHANGELOG.md](CHANGELOG.md): project changes and proposed candidate status.
+- [docs/release-notes-v0.1.0-rc.1.md](docs/release-notes-v0.1.0-rc.1.md): proposed, unpublished release candidate notes.
 - [docs/implementation-plan.md](docs/implementation-plan.md): incremental implementation plan, decisions, acceptance criteria, and verification.
 - [docs/test-plan.md](docs/test-plan.md): requirement-based task validation, creation/consultation, and access-control scenarios.
 - [docs/quality-security-review.md](docs/quality-security-review.md): bounded code/security review results, authorization evidence, and known verification limits.
@@ -49,8 +51,10 @@ The project documentation is organized as follows:
 - Java 25 (the machine also has Java 26 installed; use the installed Java 25 JDK for this project).
 - Spring Boot 4.0.9.
 - Gradle Wrapper; use `./gradlew` rather than a system Maven or Gradle installation.
+- Gradle Wrapper version 9.8.2.
 - Spring Data JPA and H2.
 - Plain HTML, CSS, and JavaScript for the frontend.
+- Node.js 22+ and Playwright 1.65.0 for frontend regression and browser E2E tests.
 - Docker and Docker Compose for a reproducible single-container local run.
 
 ## Requirements
@@ -72,6 +76,10 @@ The application is a single Spring Boot modular monolith:
 - JUnit 5/MockMvc cover backend unit and integration behavior; Node's test runner covers frontend auth regressions; Playwright covers the browser journey.
 
 There are no third-party services required at application runtime. Build/test setup downloads dependencies from Gradle/Maven Central, npm, Playwright's browser distribution, and the Docker image registry. GitHub Actions runs CI but is not a runtime dependency. The Gradle plugin pins Spring Boot 4.0.9; the Wrapper pins Gradle 9.8.2; Java toolchains target 25; the E2E development dependency is Playwright 1.65.0.
+
+## HTTP API
+
+The HTTP API contract, including endpoints, request/response schemas, session-cookie security, and CSRF requirements, is documented in [openapi.yaml](openapi.yaml). It uses OpenAPI 3.1.0; its contract version (`1.0.0`) is separate from the proposed Matriz application version.
 
 ## Install and configure
 
@@ -170,7 +178,7 @@ The E2E runner starts a separate application instance on port `18080` using an i
 
 The [CI workflow](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. Its `verify` job uses Java 25 and Node.js 22 to run JUnit, frontend syntax/auth checks, Playwright Chromium E2E, and Compose configuration validation. The separate `build-image` job has `needs: verify`, so it cannot build the Docker image unless every verification step succeeds. Workflow permissions are read-only (`contents: read`); it uses no repository secrets and does not publish an image to a registry.
 
-The test gate was checked locally with a temporary JUnit assertion failure: `./gradlew --no-daemon clean test` failed with one failing test and exit code 1. The temporary test was then removed and the full suite rerun successfully. This confirms Gradle's test command fails closed; it is not a GitHub Actions run. The Actions result must be checked on GitHub after the workflow commit is pushed.
+On 2026-11-11, the first Actions run failed on an exact timestamp-string comparison in a comment integration test, and correctly skipped `build-image`. The test was made tolerant of equivalent timestamp serialization; the subsequent run passed both jobs. See the [successful Actions run](https://github.com/fmoreira13/project-ai-switch/actions/runs/43092399460). A separate temporary-failure check was also performed locally; it is not a claim that the Actions run itself used an injected failure.
 
 After signing in, use `http://localhost:8080/` to create, list, search, inspect, edit, and remove projects and tasks. Project names must contain 3-100 characters and are unique after trimming, without regard to case; descriptions are limited to 1000 characters. Projects with tasks cannot be removed and return a conflict, preserving all dependent records. Task titles must contain 3-150 non-whitespace characters; descriptions are limited to 2000 characters. Tasks use statuses `TODO`, `IN_PROGRESS`, and `DONE` and priorities `LOW`, `MEDIUM`, and `HIGH`; defaults are `TODO` and `MEDIUM`. Members can view/update tasks, while only managers can create/remove them or manage their assignments. Multiple active project members can be assigned to a task, with no duplicate assignment for the same user. Task comments show the author and date; members can add comments containing non-whitespace text of 1-2000 characters. Task lists support text, status, and priority filters, return current status counts, and are not paginated by the API contract.
 
@@ -197,4 +205,4 @@ The `JSESSIONID` session cookie is HttpOnly and SameSite=Lax; the CSRF token is 
 
 ## Current project status
 
-The Spring Boot project, H2 persistence schema, session authentication, project/task management interface, overview counts, assignee management, comments, and project-scoped access checks are implemented. Automated API/frontend checks and user-reported browser/restart checks are documented in [docs/verification.md](docs/verification.md). The user confirmed project edit/deletion, task filters, assignment add/remove, status/priority/count updates, validation/error feedback, comment author/date after reopening, and data surviving a Backend restart. API authorization is covered by automated integration tests. The access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md).
+The Spring Boot project, H2 persistence schema, session authentication, project/task management interface, overview counts, assignee management, comments, and project-scoped access checks are implemented. Automated API/frontend checks and user-reported browser/restart checks are documented in [docs/verification.md](docs/verification.md). The access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md). A proposed version and the limits of the candidate are recorded in the [release notes](docs/release-notes-v0.1.0-rc.1.md); no release has been published.

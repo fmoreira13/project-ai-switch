@@ -5,7 +5,7 @@
 - Review date: 2026-11-11.
 - Branch: `main`.
 - Reviewed E2E increment: commit `48d441e` (`ficha 4 - exercicio 4`).
-- The review was performed against a clean worktree at that commit. The task-level authorization regression test and this report were added afterward and remain uncommitted; they are validation/documentation changes, not a new finding or production-code correction.
+- The review was performed against a clean worktree at that commit. The task-level authorization regression test was subsequently committed as `0e3e832`; it is a validation change, not a new finding or production-code correction. This report has since been updated to reflect the final CI evidence.
 - Scope: the latest Playwright E2E increment and the project/task access-control flows, including direct resource access, role restrictions, and obvious exposure of secrets.
 
 ## Code review
@@ -49,6 +49,7 @@ Results below are actual command results from 2026-11-11:
 | `npm run test:e2e` | Passed in three consecutive runs (1 Playwright test each); latest run followed `npm ci`. |
 | Frontend `node --check` commands and `node --experimental-default-type=module --test src/test/js/auth.test.mjs` | Passed: syntax checks succeeded and 2 Node tests passed. |
 | `git diff --check` | Passed after all current test/documentation edits. |
+| GitHub Actions for commit `0e3e832f1a5e58c17007eae6ad47a4b8555e0ea9` | Passed: `verify` and dependent `build-image` jobs; [run 43092399460](https://github.com/fmoreira13/project-ai-switch/actions/runs/43092399460). |
 
 The unit, integration and E2E commands, including isolated test setup, are documented in [README.md](../README.md). The final Java suite, frontend checks, E2E run and diff check passed after the task-level regression test and report were added.
 
@@ -59,5 +60,5 @@ The unit, integration and E2E commands, including isolated test setup, are docum
 - **Correction applied:** added an integration regression test for direct task-ID read/update attempts across the two demo accounts. The test passed; application behavior was already denying these requests, so no production authorization code was changed.
 - **Static analysis:** not run because no static-analysis tool is configured.
 - **Manual two-account UI/API session test:** not performed; the equivalent task authorization checks were run as automated MockMvc integration tests.
-- **Full post-change verification:** complete; 23 JUnit tests, 2 Node auth tests, 1 Playwright E2E, JavaScript syntax checks, and `git diff --check` all passed.
-- **Final source reference:** branch `main`; reviewed E2E increment `48d441e`. The follow-up task-ID regression test and documentation updates remain uncommitted; no final commit has been created.
+- **Full post-change verification:** complete; 23 JUnit tests, 2 Node auth tests, 1 Playwright E2E, JavaScript syntax checks, Compose validation, and Docker image build passed in the referenced GitHub Actions run.
+- **Review reference:** the code review scope remains the E2E increment `48d441e`; the subsequent authorization regression test is in commit `0e3e832`. Documentation-only release preparation is tracked separately in the proposed changelog and release notes.
