@@ -768,6 +768,37 @@ class MatrizAccessIntegrationTests {
     }
 
     @Test
+    void exercise5ManagerCannotReadOrUpdateAnotherUsersTaskById() throws Exception {
+        Project beta = projects.findByName("Matriz Demo - Beta").orElseThrow();
+        Task betaTask = tasks.findAllByProject_IdInOrderByCreatedAtDesc(java.util.List.of(beta.getId()))
+                .stream().findFirst().orElseThrow();
+        MockHttpSession betaOwner = login("member@matriz.local", "test-member-password");
+        MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
+        String originalTitle = betaTask.getTitle();
+
+        mockMvc.perform(get("/tasks/{taskId}", betaTask.getId()).session(betaOwner))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(betaTask.getId().toString()))
+                .andExpect(jsonPath("$.title").value(originalTitle));
+
+        mockMvc.perform(get("/tasks/{taskId}", betaTask.getId()).session(manager))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("PROJECT_ACCESS_DENIED"));
+
+        mockMvc.perform(put("/tasks/{taskId}", betaTask.getId())
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Unauthorized task update","status":"DONE","priority":"HIGH"}
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("PROJECT_ACCESS_DENIED"));
+
+        assertEquals(originalTitle, tasks.findById(betaTask.getId()).orElseThrow().getTitle());
+    }
+
+    @Test
     @Transactional
     void exercise3CreatesTaskReadsItBackAndRejectsInvalidTitle() throws Exception {
         Project alpha = projects.findByName("Matriz Demo - Alpha").orElseThrow();

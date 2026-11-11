@@ -38,6 +38,7 @@ The project documentation is organized as follows:
 - [docs/database.md](docs/database.md): MVP data model.
 - [docs/implementation-plan.md](docs/implementation-plan.md): incremental implementation plan, decisions, acceptance criteria, and verification.
 - [docs/test-plan.md](docs/test-plan.md): requirement-based task validation, creation/consultation, and access-control scenarios.
+- [docs/quality-security-review.md](docs/quality-security-review.md): bounded code/security review results, authorization evidence, and known verification limits.
 - [playwright.config.js](playwright.config.js) and [e2e/](e2e/): repeatable browser-based end-to-end checks using an isolated in-memory H2 database.
 - [docs/verification.md](docs/verification.md): expected and observed Exercise 8 results, automated test evidence, and user-reported manual checks.
 - [docs/ui/wireframe.png](docs/ui/wireframe.png): visual prototype of the MVP project and task management flow.
@@ -106,6 +107,7 @@ To run checks from another terminal, select Java 25 there as well:
 
 ```sh
 ./gradlew clean test
+./gradlew test --tests 'com.matriz.MatrizAccessIntegrationTests.exercise5ManagerCannotReadOrUpdateAnotherUsersTaskById'
 node --check src/main/resources/static/js/auth.js
 node --check src/main/resources/static/js/login.js
 node --check src/main/resources/static/js/index.js
