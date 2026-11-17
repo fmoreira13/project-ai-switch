@@ -2,7 +2,7 @@
 
 Notable project changes are recorded here. Candidate publication status is stated per entry; the Gradle artifact version remains independent.
 
-## `0.1.0-rc.2` - Release candidate
+## `0.1.0-rc.2` - Published pre-release
 
 ### Fixed
 
@@ -12,10 +12,11 @@ Notable project changes are recorded here. Candidate publication status is state
 
 - Added pre-release-only GHCR publication after verification, Docker build, and Trivy scan succeed. The image receives version and full-SHA tags; no `latest` tag is published.
 - Added Render-compatible port configuration and documented an ephemeral, in-memory setup for academic demonstrations.
+- Published the candidate image to the public GHCR package after granting the repository workflow Write access to the package.
 
 ### Verification
 
-- Local Java, frontend, E2E, Compose, Docker build, and non-default-port container checks passed. The release-specific GitHub Actions run and image digest will be added to the [release notes](docs/release-notes-v0.1.0-rc.2.md) after publication.
+- Local Java, frontend, E2E, Compose, Docker build, and non-default-port container checks passed. The release Actions run and image digest are recorded in the [release notes](docs/release-notes-v0.1.0-rc.2.md).
 
 ## Proposed `0.1.0-rc.1` - Superseded
 

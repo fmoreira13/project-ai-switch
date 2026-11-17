@@ -101,4 +101,6 @@ No additional confirmed functional or access-control defect was found in the rev
 | `docker build --tag matriz:review .` | Passed. |
 | `git diff --check` | Passed. |
 
-This candidate's Render port wiring was verified by a temporary container on port `18082` returning readiness status `UP`; the E2E test also uses the `PORT` environment variable. The release-specific GHCR job remains to be verified by the published pre-release workflow.
+This candidate's Render port wiring was verified by a temporary container on port `18082` returning readiness status `UP`; the E2E test also uses the `PORT` environment variable.
+
+The published pre-release workflow initially passed verification and image scanning but GHCR denied the image manifest because the existing package did not grant the workflow Write access. After the repository was added with Write under **Manage Actions access**, the failed publish job was rerun and passed. The public package now has both release-version and full-commit-SHA tags. Future image builds include the OCI source label to support repository association.

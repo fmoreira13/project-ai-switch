@@ -154,7 +154,7 @@ Do not use `docker compose down --volumes` unless intentionally deleting the con
 
 The application can be deployed as a Docker web service for a short academic demonstration:
 
-1. Create a Render Web Service from this GitHub repository and select the `Docker` runtime and `main` branch.
+1. Create a Render Web Service from an existing image and enter `ghcr.io/fmoreira13/project-ai-switch:0.1.0-rc.2`. The GHCR package is public, so no registry credentials are required.
 2. Set the health check path to `/actuator/health/readiness`.
 3. Configure `MATRIZ_DB_URL` as `jdbc:h2:mem:matriz;DB_CLOSE_DELAY=-1`, set both demo passwords in Render's environment settings, and set `MATRIZ_SESSION_COOKIE_SECURE` to `true`. `PORT` is supplied by Render; Spring Boot uses it and defaults to `8080` for local runs.
 4. Deploy and use the service URL. The fictitious manager/member demo accounts are initialized at startup.
@@ -193,7 +193,7 @@ The E2E runner starts a separate application instance on port `18080` using an i
 
 The [CI workflow](.github/workflows/ci.yml) runs on pushes to `main`, pull requests, and published GitHub releases. Its `verify` job uses Java 25 and Node.js 22 to run JUnit, frontend syntax/auth checks, Playwright Chromium E2E, and Compose configuration validation. The separate `build-image` job has `needs: verify`, builds the image, then scans its operating-system packages with Trivy. The scan fails the job for HIGH or CRITICAL findings, including vulnerabilities without a known fix. It does not scan application-library dependencies.
 
-For published pre-releases only, `publish-image` waits for both `verify` and `build-image`, then publishes to `ghcr.io/fmoreira13/project-ai-switch` using the built-in `GITHUB_TOKEN` and the job's minimum `packages: write` permission. It tags the image with the release version (without the leading `v`) and full commit SHA; it does not set `latest`. Push and pull-request workflows remain read-only (`contents: read`) and do not publish images.
+For published pre-releases only, `publish-image` waits for both `verify` and `build-image`, then publishes to `ghcr.io/fmoreira13/project-ai-switch` using the built-in `GITHUB_TOKEN` and the job's minimum `packages: write` permission. It tags the image with the release version (without the leading `v`) and full commit SHA; it does not set `latest`. Push and pull-request workflows remain read-only (`contents: read`) and do not publish images. The Dockerfile includes the OCI source label; for the existing package, the repository must have **Write** under **Manage Actions access** in the package settings.
 
 The first local Trivy scan found two HIGH entries for `CVE-2026-109518` in the Java runtime base image's `apt` packages. The Dockerfile now applies available OS package updates during the image build; rescanning the rebuilt image with Trivy 0.70.0 reported no HIGH or CRITICAL OS findings. GitHub Actions run [44120868378](https://github.com/fmoreira13/project-ai-switch/actions/runs/44120868378) passed `verify` and `build-image`, including the Trivy scan, on 2026-11-17. That push-triggered run predates this release workflow and does not exercise its pre-release-only publication job.
 
@@ -224,4 +224,4 @@ The `JSESSIONID` session cookie is HttpOnly and SameSite=Lax; the CSRF token is 
 
 ## Current project status
 
-The Spring Boot project, H2 persistence schema, session authentication, project/task management interface, overview counts, assignee management, comments, and project-scoped access checks are implemented. Automated API/frontend checks and user-reported browser/restart checks are documented in [docs/verification.md](docs/verification.md). The access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md). The `0.1.0-rc.2` candidate scope and release status are recorded in the [release notes](docs/release-notes-v0.1.0-rc.2.md).
+The Spring Boot project, H2 persistence schema, session authentication, project/task management interface, overview counts, assignee management, comments, and project-scoped access checks are implemented. Automated API/frontend checks and user-reported browser/restart checks are documented in [docs/verification.md](docs/verification.md). The access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md). The published `0.1.0-rc.2` candidate and GHCR image are recorded in the [release notes](docs/release-notes-v0.1.0-rc.2.md).

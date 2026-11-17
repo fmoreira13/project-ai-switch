@@ -9,6 +9,7 @@ RUN chmod +x gradlew && ./gradlew --no-daemon bootJar
 FROM eclipse-temurin:25-jre
 
 WORKDIR /app
+LABEL org.opencontainers.image.source="https://github.com/fmoreira13/project-ai-switch"
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*

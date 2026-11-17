@@ -1,8 +1,10 @@
 # Matriz 0.1.0-rc.2 - Release Candidate
 
-**Status:** prepared for pre-release publication after CI passes.
+**Status:** published as a GitHub pre-release on 2026-11-17.
 **Semantic Versioning:** `0.1.0-rc.2`.
 **Purpose:** an academic demonstration candidate, not a production release.
+
+GitHub release: [v0.1.0-rc.2](https://github.com/fmoreira13/project-ai-switch/releases/tag/v0.1.0-rc.2).
 
 ## Highlights
 
@@ -32,11 +34,15 @@ Local checks completed before publication:
 - Container started with `PORT=18082` and its readiness endpoint returned `UP`.
 - `git diff --check`: passed.
 
-The GitHub Actions run for the release commit and the GHCR image digest must be recorded here after publication. The release workflow will not publish if verification or the Trivy image scan fails.
+GitHub Actions release run [44124699323](https://github.com/fmoreira13/project-ai-switch/actions/runs/44124699323) passed `verify`, `build-image` (including Trivy), and `publish-image` after package workflow access was granted.
+
+Public image: [`ghcr.io/fmoreira13/project-ai-switch:0.1.0-rc.2`](https://github.com/users/fmoreira13/packages/container/package/project-ai-switch). The full-SHA tag is `ghcr.io/fmoreira13/project-ai-switch:sha-9480e59b7dfbd1205c78e7d651ae6dec99cbbbcd`.
+
+OCI image index digest: `sha256:29066badf3a5d243145de33e940dc2f160b170b5894108531295570f6765e4e5`.
 
 ## Academic Render demonstration
 
-Configure Render with the repository's Docker runtime, `/actuator/health/readiness` as the health check path, and environment values for `MATRIZ_DB_URL=jdbc:h2:mem:matriz;DB_CLOSE_DELAY=-1`, both demo passwords, and `MATRIZ_SESSION_COOKIE_SECURE=true`. Render supplies `PORT`.
+Configure Render with the public GHCR image above, `/actuator/health/readiness` as the health check path, and environment values for `MATRIZ_DB_URL=jdbc:h2:mem:matriz;DB_CLOSE_DELAY=-1`, both demo passwords, and `MATRIZ_SESSION_COOKIE_SECURE=true`. Render supplies `PORT`. The Render service itself has not been created or deployed.
 
 This deployment is temporary and uses in-memory H2. Render Free can sleep while idle and has ephemeral storage; records are not durable and may be lost after restart or redeployment. Use fictitious data only. This candidate is not production-ready.
 
