@@ -18,7 +18,7 @@ paths:
   /api/health:
     get:
       summary: Check application health
-      description: Returns a simple health status and does not require authentication.
+      description: Returns a compatibility health status and does not require authentication.
       operationId: getHealth
       security: []
       tags:
@@ -35,6 +35,48 @@ paths:
                   status:
                     type: string
                     const: ok
+  /actuator/health/liveness:
+    get:
+      summary: Check process liveness
+      description: Reports whether the application process is live; does not check database dependencies or require authentication.
+      operationId: getLiveness
+      security: []
+      tags:
+        - System
+      responses:
+        '200':
+          description: The application is live.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProbeStatus'
+        '503':
+          description: The application is not live.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProbeStatus'
+  /actuator/health/readiness:
+    get:
+      summary: Check application readiness
+      description: Reports readiness including the H2 datasource check. Component details are not returned; authentication is not required.
+      operationId: getReadiness
+      security: []
+      tags:
+        - System
+      responses:
+        '200':
+          description: The application is ready to serve requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProbeStatus'
+        '503':
+          description: The application or its database is not ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProbeStatus'
   /auth/csrf:
     get:
       summary: Obtain a CSRF token
@@ -662,6 +704,14 @@ components:
       name: JSESSIONID
       description: HTTP session cookie issued by POST /auth/login.
   schemas:
+    ProbeStatus:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN, OUT_OF_SERVICE, UNKNOWN]
     LoginRequest:
       type: object
       required:

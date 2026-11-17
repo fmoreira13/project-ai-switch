@@ -15,6 +15,9 @@ The `0.x` version indicates an initial pre-1.0 product milestone; `rc.1` identif
 - File-backed H2 persistence for local use and a named persistent volume for Docker Compose.
 - OpenAPI contract for the HTTP API at [`../openapi.yaml`](../openapi.yaml).
 - CI scans operating-system packages in the built container image with Trivy and blocks on HIGH or CRITICAL vulnerabilities.
+- Console logs use structured JSON; health probes expose liveness and readiness status without component details, and Compose checks readiness including H2 availability.
+
+The observability increment was validated locally on 2026-11-16: Java tests passed, the new Docker image built, both probes and the compatibility health endpoint returned HTTP 200 in an isolated container, and startup logs parsed as JSON. The existing Compose container was not restarted. This increment still requires a GitHub Actions run after push.
 - The runtime image upgrades its base operating-system packages during build to include available security updates.
 
 ## Verification evidence

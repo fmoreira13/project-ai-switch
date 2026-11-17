@@ -4,6 +4,11 @@ Notable project changes are recorded here. This file tracks the proposed applica
 
 ## Proposed `0.1.0-rc.1` - Unreleased
 
+### Observability (exercise increment)
+
+- Added structured JSON console logging.
+- Added public liveness and readiness health probes with health details hidden; readiness includes H2 connectivity and is used by Docker Compose.
+
 ### Added
 
 - Documented the implemented modular-monolith architecture and request/persistence flow, including a Mermaid diagram.

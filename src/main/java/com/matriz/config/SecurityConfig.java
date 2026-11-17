@@ -37,6 +37,8 @@ public class SecurityConfig {
                                 "/js/**",
                                 "/css/**",
                                 "/api/health",
+                                "/actuator/health",
+                                "/actuator/health/**",
                                 "/auth/csrf",
                                 "/auth/login",
                                 "/error").permitAll()

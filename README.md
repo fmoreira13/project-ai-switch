@@ -120,11 +120,13 @@ Start the application from the repository root with Java 25 selected and `.env` 
 ./gradlew bootRun
 ```
 
-The local application is available at `http://localhost:8080`; health check: `http://localhost:8080/api/health`. The frontend is served by Spring Boot at `/` and `/login.html`.
+The local application is available at `http://localhost:8080`; the frontend is served by Spring Boot at `/` and `/login.html`. Availability endpoints are `GET /actuator/health/liveness` (process liveness) and `GET /actuator/health/readiness` (application readiness, including H2 connectivity); both return only an overall status, without component details. The existing `GET /api/health` endpoint remains available for compatibility.
+
+Application logs are written as one structured JSON object per console line. They include framework/application log fields; the application does not enable HTTP request-body or credential logging.
 
 ### Run with Docker Compose
 
-Docker Compose runs the same Spring Boot application in one container. H2 is embedded, so no separate database service is needed; Compose supplies its default bridge network, which is sufficient for this single service. The named `matriz-data` volume preserves the file-backed H2 database across container recreation and ordinary `docker compose down`. The service healthcheck requests `/api/health` and marks the container healthy only after receiving HTTP 200.
+Docker Compose runs the same Spring Boot application in one container. H2 is embedded, so no separate database service is needed; Compose supplies its default bridge network, which is sufficient for this single service. The named `matriz-data` volume preserves the file-backed H2 database across container recreation and ordinary `docker compose down`. The service healthcheck requests `/actuator/health/readiness`; the container is healthy only when the application is ready and H2 is accessible.
 
 Create the ignored `.env` file and review/change the fictitious demo passwords before starting:
 
@@ -135,6 +137,8 @@ docker compose build
 docker compose up -d
 docker compose ps
 docker compose logs --tail=50
+curl --fail http://localhost:8080/actuator/health/liveness
+curl --fail http://localhost:8080/actuator/health/readiness
 curl --fail http://localhost:8080/api/health
 ```
 

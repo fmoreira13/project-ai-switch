@@ -47,6 +47,7 @@ The browser UI is served by Spring Boot from `src/main/resources/static`. There 
 | Browser UI | Plain HTML, CSS, and JavaScript under `src/main/resources/static` | Sign-in, project and task views, task filters, assignment and comment interactions. |
 | HTTP API | Spring MVC controllers under `com.matriz.api` | Expose authentication, health, project, task, assignment, and comment endpoints. |
 | Security | Spring Security; server-side HTTP session | Authenticate demo users, enforce CSRF on state-changing requests, and protect API access. |
+| Observability | Spring Boot Actuator and structured console logging | Expose liveness/readiness health status without component details and emit one JSON log event per line. |
 | Application logic | Services under `com.matriz.service` | Validate operations, apply project-scoped access rules, and coordinate persistence. |
 | Persistence | Spring Data JPA repositories and entities under `com.matriz.repository` and `com.matriz.domain` | Read and write projects, tasks, users, memberships, assignments, and comments. |
 | Database | Embedded H2 | File-backed for local/Compose execution; in-memory for integration and E2E tests. |
@@ -62,7 +63,7 @@ The project targets Java 25, Spring Boot 4.0.9, and Gradle Wrapper 9.8.2. H2 sch
 5. Controllers call application services. Services validate input and check the authenticated user's project membership and role before using repositories.
 6. Spring Data JPA persists changes to H2. The API returns JSON responses or structured errors to the browser.
 
-The session cookie is HttpOnly and SameSite=Lax. The Secure attribute is controlled by `MATRIZ_SESSION_COOKIE_SECURE` and defaults to `false` for local HTTP. Passwords are stored as BCrypt hashes. For endpoint definitions and request/response schemas, see the [OpenAPI contract](../openapi.yaml).
+The session cookie is HttpOnly and SameSite=Lax. The Secure attribute is controlled by `MATRIZ_SESSION_COOKIE_SECURE` and defaults to `false` for local HTTP. Passwords are stored as BCrypt hashes. Availability probes are public but expose only aggregate status: liveness includes only the application liveness state, while readiness includes the readiness state and H2 datasource check. Compose uses readiness as its healthcheck; liveness does not depend on the database. Only the Actuator health endpoint is exposed. For endpoint definitions and request/response schemas, see the [OpenAPI contract](../openapi.yaml).
 
 ## Data and persistence
 
@@ -94,6 +95,7 @@ The application checks access on server-side API operations, including direct re
 - Browser E2E: `npm ci`, `npx playwright install chromium`, then `npm run test:e2e`.
 - Container run: `docker compose config --quiet`, `docker compose build`, then `docker compose up -d`.
 - CI: `.github/workflows/ci.yml` runs verification before the dependent Docker image build and Trivy operating-system package vulnerability scan. The scan fails on HIGH or CRITICAL findings and does not publish an image. Application-library dependencies are outside this scan's scope.
+- Observability: console log output is structured JSON; Actuator health probes report liveness and readiness, and Compose checks readiness.
 
 The README contains complete setup, environment, test, and Compose commands. The OpenAPI document is the HTTP contract; no separate API server or generated documentation site is configured.
 

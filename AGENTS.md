@@ -94,11 +94,13 @@ docker compose build
 docker compose up -d
 docker compose ps
 docker compose logs --tail=50
+curl --fail http://localhost:8080/actuator/health/liveness
+curl --fail http://localhost:8080/actuator/health/readiness
 curl --fail http://localhost:8080/api/health
 docker compose down
 ```
 
-Compose runs one Spring Boot container; H2 is embedded, and Compose's default bridge network is sufficient for the single service. A healthcheck polls `/api/health` for HTTP 200. Compose uses a named volume for its file-backed H2 data. `docker compose down` preserves it; do not use `docker compose down --volumes` unless intentionally deleting that database. The `.env` file is runtime-only and excluded from the image build context.
+Compose runs one Spring Boot container; H2 is embedded, and Compose's default bridge network is sufficient for the single service. Its healthcheck polls `/actuator/health/readiness`, which includes application readiness and H2 connectivity. `/actuator/health/liveness` checks process liveness, and `/api/health` remains available for compatibility. Actuator exposes only health and hides component details. Application console logs use structured JSON. Compose uses a named volume for its file-backed H2 data. `docker compose down` preserves it; do not use `docker compose down --volumes` unless intentionally deleting that database. The `.env` file is runtime-only and excluded from the image build context.
 
 GitHub Actions runs the same Java, frontend, and Playwright checks and builds the container image for pushes to `main` and pull requests. It does not publish images.
 

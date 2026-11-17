@@ -39,6 +39,21 @@ No configured ESLint, Semgrep, SonarQube, SpotBugs, or equivalent source-code st
 
 The first local Trivy scan found two HIGH entries for the same issue, `CVE-2026-109518`, in `apt` and `libapt-pkg7.0` in the Java runtime base image (installed `3.2.0`, fixed `3.2.1ubuntu0.1`). The runtime image build now applies available OS package upgrades before copying in the application. After a clean no-cache rebuild, Trivy 0.70.0 reported zero HIGH/CRITICAL OS findings for the rebuilt Ubuntu 26.04 image. The corresponding GitHub Actions scan has not yet run.
 
+## Observability controls
+
+Spring Boot Actuator exposes only public liveness and readiness health groups; component details are disabled. Liveness does not include database checks. Readiness includes the application readiness state and H2 datasource health, and Compose uses readiness for its container healthcheck. Console logs use structured JSON; no request-body or credential logging was added. These configuration and access rules are covered by `MatrizApplicationTests`.
+
+Validation on 2026-11-16:
+
+| Check | Result |
+|---|---|
+| `./gradlew --no-daemon clean test` | Passed after adding Actuator and probe tests. |
+| Compose configuration and OpenAPI/Compose/workflow YAML parsing | Passed. |
+| Docker image build with Actuator | Passed as `matriz:observability`. |
+| Temporary isolated container probes on port `18081` | Liveness, readiness, and compatibility `/api/health` all returned HTTP 200; Actuator responses contained no component details. |
+| Runtime console log parsing | All 26 startup log events parsed as individual JSON objects. |
+| Existing Compose application | Remained healthy on port `8080`; it was not restarted or modified. |
+
 ## Executed verification
 
 Results below are actual command results from 2026-11-11:
