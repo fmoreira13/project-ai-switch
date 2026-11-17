@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -64,7 +65,7 @@ public class TaskService {
             projectIds = List.of(projectId);
         }
 
-        String normalizedQuery = query == null ? "" : query.trim().toLowerCase();
+        String normalizedQuery = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
         List<Task> allTasks = tasks.findAllByProject_IdInOrderByCreatedAtDesc(projectIds);
         ApiModels.TaskCounts counts = new ApiModels.TaskCounts(
                 allTasks.size(),
@@ -73,9 +74,9 @@ public class TaskService {
                 allTasks.stream().filter(task -> task.getStatus() == TaskStatus.DONE).count());
         List<ApiModels.TaskResponse> items = allTasks.stream()
                 .filter(task -> normalizedQuery.isEmpty()
-                        || task.getTitle().toLowerCase().contains(normalizedQuery)
+                        || task.getTitle().toLowerCase(Locale.ROOT).contains(normalizedQuery)
                         || (task.getDescription() != null
-                        && task.getDescription().toLowerCase().contains(normalizedQuery)))
+                        && task.getDescription().toLowerCase(Locale.ROOT).contains(normalizedQuery)))
                 .filter(task -> status == null || task.getStatus() == status)
                 .filter(task -> priority == null || task.getPriority() == priority)
                 .map(this::toResponse)

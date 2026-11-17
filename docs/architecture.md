@@ -71,6 +71,7 @@ The primary records are projects and tasks. A task belongs to one project and ha
 
 - Local `bootRun`: file-backed database under the ignored `data/` directory, configured by `MATRIZ_DB_URL`.
 - Docker Compose: embedded H2 database in a named `matriz-data` volume mounted at `/app/data`.
+- Render academic demo: Render supplies `PORT`, which Spring Boot uses; the service should use in-memory H2 because the free instance's filesystem is ephemeral. Demo data is disposable across restarts/redeploys.
 - Integration tests: in-memory H2 database; test mutations are isolated from local data.
 - Playwright E2E: separate application process on port `18080`, with an in-memory H2 database and fictitious test credentials.
 
@@ -95,6 +96,7 @@ The application checks access on server-side API operations, including direct re
 - Browser E2E: `npm ci`, `npx playwright install chromium`, then `npm run test:e2e`.
 - Container run: `docker compose config --quiet`, `docker compose build`, then `docker compose up -d`.
 - CI: `.github/workflows/ci.yml` runs verification before the dependent Docker image build and Trivy operating-system package vulnerability scan. The scan fails on HIGH or CRITICAL findings and does not publish an image. Application-library dependencies are outside this scan's scope.
+- Release candidate: a published pre-release triggers GHCR publication only after `verify` and `build-image` (including Trivy) succeed. The image is tagged with the release version and full commit SHA, not `latest`.
 - Observability: console log output is structured JSON; Actuator health probes report liveness and readiness, and Compose checks readiness.
 
 The README contains complete setup, environment, test, and Compose commands. The OpenAPI document is the HTTP contract; no separate API server or generated documentation site is configured.

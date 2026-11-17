@@ -1,5 +1,6 @@
 package com.matriz;
 
+import com.matriz.domain.AppUser;
 import com.matriz.domain.Project;
 import com.matriz.domain.Task;
 import com.matriz.repository.ProjectMembershipRepository;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -738,6 +740,44 @@ class MatrizAccessIntegrationTests {
                                 {"projectId":"%s","title":"Valid title","description":"%s"}
                                 """.formatted(alpha.getId(), "D".repeat(2001))))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void taskSearchIsIndependentOfTheServerLocale() throws Exception {
+        Project alpha = projects.findByName("Matriz Demo - Alpha").orElseThrow();
+        MockHttpSession manager = login("manager@matriz.local", "test-manager-password");
+        MvcResult created = mockMvc.perform(post("/tasks")
+                        .session(manager)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"projectId":"%s","title":"FIX locale search %s"}
+                                """.formatted(alpha.getId(), java.util.UUID.randomUUID())))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String taskId = com.jayway.jsonpath.JsonPath.read(
+                created.getResponse().getContentAsString(), "$.id");
+
+        Locale previousLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertEquals(
+                    "information@matriz.local",
+                    new AppUser("INFORMATION@matriz.local", "Test User", "hash").getEmail());
+            mockMvc.perform(get("/tasks")
+                            .session(manager)
+                            .queryParam("projectId", alpha.getId().toString())
+                            .queryParam("q", "i"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.items[?(@.id == '%s')]".formatted(taskId)).exists());
+        } finally {
+            Locale.setDefault(previousLocale);
+        }
+
+        mockMvc.perform(delete("/tasks/{taskId}", taskId)
+                        .session(manager)
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
     }
 
     @Test

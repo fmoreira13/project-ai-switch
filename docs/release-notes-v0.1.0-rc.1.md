@@ -1,7 +1,7 @@
-# Matriz 0.1.0-rc.1 - Proposed Release Candidate
+# Matriz 0.1.0-rc.1 - Superseded Candidate
 
-**Status:** proposed candidate; not tagged or published.  
-**Semantic Versioning proposal:** `0.1.0-rc.1`.  
+**Status:** superseded by `0.1.0-rc.2`; never tagged or published.
+**Semantic Versioning proposal:** `0.1.0-rc.1`.
 **Purpose:** identify a reviewable pre-release of the current MVP implementation, not declare production readiness.
 
 The `0.x` version indicates an initial pre-1.0 product milestone; `rc.1` identifies the first proposed release-candidate iteration. This proposal does not change the current Gradle version.
@@ -17,7 +17,7 @@ The `0.x` version indicates an initial pre-1.0 product milestone; `rc.1` identif
 - CI scans operating-system packages in the built container image with Trivy and blocks on HIGH or CRITICAL vulnerabilities.
 - Console logs use structured JSON; health probes expose liveness and readiness status without component details, and Compose checks readiness including H2 availability.
 
-The observability increment was validated locally on 2026-11-16: Java tests passed, the new Docker image built, both probes and the compatibility health endpoint returned HTTP 200 in an isolated container, and startup logs parsed as JSON. The existing Compose container was not restarted. This increment still requires a GitHub Actions run after push.
+The observability increment was validated locally on 2026-11-16: Java tests passed, the new Docker image built, both probes and the compatibility health endpoint returned HTTP 200 in an isolated container, and startup logs parsed as JSON. The existing Compose container was not restarted.
 - The runtime image upgrades its base operating-system packages during build to include available security updates.
 
 ## Verification evidence
@@ -38,11 +38,9 @@ See the [GitHub Actions run](https://github.com/fmoreira13/project-ai-switch/act
 - H2, demo accounts, and manager/member access are exercise choices. Demo credentials must not be used as production credentials.
 - Comments and task assignments are exercise extensions, not confirmed product MVP requirements.
 - The CI workflow builds an image but does not publish it to a registry.
-- A local Trivy 0.70.0 scan of the rebuilt image found no HIGH/CRITICAL OS findings after the Dockerfile security update. The first GitHub Actions result for this change is pending and is not included in the earlier successful run.
+- A local Trivy 0.70.0 scan of the rebuilt image found no HIGH/CRITICAL OS findings after the Dockerfile security update. GitHub Actions run [44120868378](https://github.com/fmoreira13/project-ai-switch/actions/runs/44120868378) subsequently passed the Trivy scan; the release-only GHCR workflow is introduced in `0.1.0-rc.2`.
 - This initial scan does not cover application-library dependencies.
 - No configured static-analysis/SAST scanner was run; see [`quality-security-review.md`](quality-security-review.md).
 - The Gradle artifact version is still `0.0.1-SNAPSHOT`. The proposed candidate version is documentation only and has not been applied to the build or tagged in Git.
 
-## Candidate release decision
-
-Review the remaining product/security decisions and approve the candidate before creating a Git tag or publishing any release. No production release is requested or implied here.
+This candidate was superseded before tagging or publication. No production release is implied; see the [0.1.0-rc.2 notes](release-notes-v0.1.0-rc.2.md) for the current candidate.

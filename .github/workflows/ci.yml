@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -73,3 +75,34 @@ jobs:
           exit-code: "1"
           ignore-unfixed: "false"
           timeout: 10m
+
+  publish-image:
+    if: github.event_name == 'release' && github.event.release.prerelease == true
+    needs: [verify, build-image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_USER: ${{ github.actor }}
+        run: echo "$GH_TOKEN" | docker login ghcr.io --username "$GH_USER" --password-stdin
+
+      - name: Build and publish release candidate image
+        env:
+          IMAGE_NAME: ghcr.io/${{ github.repository }}
+          VERSION: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          VERSION="${VERSION#v}"
+          docker build \
+            --tag "$IMAGE_NAME:$VERSION" \
+            --tag "$IMAGE_NAME:sha-$COMMIT_SHA" \
+            .
+          docker push "$IMAGE_NAME:$VERSION"
+          docker push "$IMAGE_NAME:sha-$COMMIT_SHA"

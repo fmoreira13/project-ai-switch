@@ -37,7 +37,7 @@ The existing project-level cross-account test is `exercise8RejectsAccessToAnothe
 
 No configured ESLint, Semgrep, SonarQube, SpotBugs, or equivalent source-code static-analysis/SAST tool was found in the project configuration. The CI now scans the built container image with Trivy for operating-system package vulnerabilities, failing on HIGH and CRITICAL findings (including unfixed ones). Application-library dependencies are not included; this image scan does not replace dependency analysis or source-code SAST.
 
-The first local Trivy scan found two HIGH entries for the same issue, `CVE-2026-109518`, in `apt` and `libapt-pkg7.0` in the Java runtime base image (installed `3.2.0`, fixed `3.2.1ubuntu0.1`). The runtime image build now applies available OS package upgrades before copying in the application. After a clean no-cache rebuild, Trivy 0.70.0 reported zero HIGH/CRITICAL OS findings for the rebuilt Ubuntu 26.04 image. The corresponding GitHub Actions scan has not yet run.
+The first local Trivy scan found two HIGH entries for the same issue, `CVE-2026-109518`, in `apt` and `libapt-pkg7.0` in the Java runtime base image (installed `3.2.0`, fixed `3.2.1ubuntu0.1`). The runtime image build now applies available OS package upgrades before copying in the application. After a clean no-cache rebuild, Trivy 0.70.0 reported zero HIGH/CRITICAL OS findings for the rebuilt Ubuntu 26.04 image. GitHub Actions run [44120868378](https://github.com/fmoreira13/project-ai-switch/actions/runs/44120868378) passed `build-image`, including Trivy, on 2026-11-17. That run does not include the new release-only GHCR publication job.
 
 ## Observability controls
 
@@ -79,3 +79,26 @@ The unit, integration and E2E commands, including isolated test setup, are docum
 - **Manual two-account UI/API session test:** not performed; the equivalent task authorization checks were run as automated MockMvc integration tests.
 - **Full post-change verification:** complete; 23 JUnit tests, 2 Node auth tests, 1 Playwright E2E, JavaScript syntax checks, Compose validation, and Docker image build passed in the referenced GitHub Actions run.
 - **Review reference:** the code review scope remains the E2E increment `48d441e`; the subsequent authorization regression test is in commit `0e3e832`. Documentation-only release preparation is tracked separately in the proposed changelog and release notes.
+
+## Full application follow-up review (2026-11-17)
+
+The follow-up review covered the Java API/controllers, services, domain entities, repositories, schema initialization, authentication and authorization flow, browser UI, automated tests, Docker/Compose, GitHub Actions, OpenAPI, and current technical documentation.
+
+### Finding and correction
+
+The default JVM locale was used for case normalization in task search and email storage. On locales such as Turkish (`tr-TR`), uppercase `I` can normalize to dotless `ı`, making case-insensitive search inconsistent and changing stored email normalization. Both code paths now use `Locale.ROOT`. `taskSearchIsIndependentOfTheServerLocale` reproduces the Turkish-locale condition and verifies task search and email normalization; the test restores the original JVM locale even on failure.
+
+No additional confirmed functional or access-control defect was found in the reviewed paths. This review does not certify production security or replace dependency/SAST analysis.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `./gradlew --no-daemon test` | Passed: 25 JUnit tests, 0 failures. |
+| Frontend `node --check` and auth tests | Passed: syntax checks succeeded and 2 Node tests passed. |
+| `npm run test:e2e` | Passed: 1 Playwright browser test. |
+| `docker compose --env-file .env.example config --quiet` | Passed. |
+| `docker build --tag matriz:review .` | Passed. |
+| `git diff --check` | Passed. |
+
+This candidate's Render port wiring was verified by a temporary container on port `18082` returning readiness status `UP`; the E2E test also uses the `PORT` environment variable. The release-specific GHCR job remains to be verified by the published pre-release workflow.

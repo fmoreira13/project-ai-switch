@@ -21,7 +21,7 @@ export default defineConfig({
     timeout: 120_000,
     reuseExistingServer: false,
     env: {
-      SERVER_PORT: "18080",
+      PORT: "18080",
       MATRIZ_DB_URL: "jdbc:h2:mem:matriz-e2e;DB_CLOSE_DELAY=-1",
       MATRIZ_DB_USERNAME: "sa",
       MATRIZ_DB_PASSWORD: "",

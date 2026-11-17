@@ -37,7 +37,7 @@ The project documentation is organized as follows:
 - [docs/architecture.md](docs/architecture.md): implemented architecture, data flow, deployment, and Mermaid diagram.
 - [docs/database.md](docs/database.md): MVP data model.
 - [CHANGELOG.md](CHANGELOG.md): project changes and proposed candidate status.
-- [docs/release-notes-v0.1.0-rc.1.md](docs/release-notes-v0.1.0-rc.1.md): proposed, unpublished release candidate notes.
+- [docs/release-notes-v0.1.0-rc.2.md](docs/release-notes-v0.1.0-rc.2.md): release-candidate notes and verification status.
 - [docs/implementation-plan.md](docs/implementation-plan.md): incremental implementation plan, decisions, acceptance criteria, and verification.
 - [docs/test-plan.md](docs/test-plan.md): requirement-based task validation, creation/consultation, and access-control scenarios.
 - [docs/quality-security-review.md](docs/quality-security-review.md): bounded code/security review results, authorization evidence, and known verification limits.
@@ -150,6 +150,17 @@ docker compose down
 
 Do not use `docker compose down --volumes` unless intentionally deleting the container database. The sample credentials are for local demonstration only, not production deployment.
 
+### Academic demo on Render Free
+
+The application can be deployed as a Docker web service for a short academic demonstration:
+
+1. Create a Render Web Service from this GitHub repository and select the `Docker` runtime and `main` branch.
+2. Set the health check path to `/actuator/health/readiness`.
+3. Configure `MATRIZ_DB_URL` as `jdbc:h2:mem:matriz;DB_CLOSE_DELAY=-1`, set both demo passwords in Render's environment settings, and set `MATRIZ_SESSION_COOKIE_SECURE` to `true`. `PORT` is supplied by Render; Spring Boot uses it and defaults to `8080` for local runs.
+4. Deploy and use the service URL. The fictitious manager/member demo accounts are initialized at startup.
+
+This is suitable only for a temporary demonstration. Render Free services can sleep when idle, and their filesystem is ephemeral; this configuration uses in-memory H2, so demo records are lost when the service restarts or redeploys. Do not use real or sensitive data. The application is not production-ready.
+
 ### VS Code Java setup
 
 Open the repository root (the directory containing `settings.gradle` and `build.gradle`), not `src/` by itself. The workspace enables Gradle Wrapper import and automatic Java build-configuration updates in `.vscode/settings.json`, and recommends the Java extension pack.
@@ -180,9 +191,11 @@ The E2E runner starts a separate application instance on port `18080` using an i
 
 ### GitHub Actions
 
-The [CI workflow](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. Its `verify` job uses Java 25 and Node.js 22 to run JUnit, frontend syntax/auth checks, Playwright Chromium E2E, and Compose configuration validation. The separate `build-image` job has `needs: verify`, builds the image, then scans its operating-system packages with Trivy. The scan fails the job for HIGH or CRITICAL findings, including vulnerabilities without a known fix. It does not scan application-library dependencies. Workflow permissions are read-only (`contents: read`); it uses no repository secrets and does not publish an image to a registry.
+The [CI workflow](.github/workflows/ci.yml) runs on pushes to `main`, pull requests, and published GitHub releases. Its `verify` job uses Java 25 and Node.js 22 to run JUnit, frontend syntax/auth checks, Playwright Chromium E2E, and Compose configuration validation. The separate `build-image` job has `needs: verify`, builds the image, then scans its operating-system packages with Trivy. The scan fails the job for HIGH or CRITICAL findings, including vulnerabilities without a known fix. It does not scan application-library dependencies.
 
-The first local Trivy scan found two HIGH entries for `CVE-2026-109518` in the Java runtime base image's `apt` packages. The Dockerfile now applies available OS package updates during the image build; rescanning the rebuilt image with Trivy 0.70.0 reported no HIGH or CRITICAL OS findings. The updated GitHub Actions workflow still needs a push-triggered run to verify the scan on its runner.
+For published pre-releases only, `publish-image` waits for both `verify` and `build-image`, then publishes to `ghcr.io/fmoreira13/project-ai-switch` using the built-in `GITHUB_TOKEN` and the job's minimum `packages: write` permission. It tags the image with the release version (without the leading `v`) and full commit SHA; it does not set `latest`. Push and pull-request workflows remain read-only (`contents: read`) and do not publish images.
+
+The first local Trivy scan found two HIGH entries for `CVE-2026-109518` in the Java runtime base image's `apt` packages. The Dockerfile now applies available OS package updates during the image build; rescanning the rebuilt image with Trivy 0.70.0 reported no HIGH or CRITICAL OS findings. GitHub Actions run [44120868378](https://github.com/fmoreira13/project-ai-switch/actions/runs/44120868378) passed `verify` and `build-image`, including the Trivy scan, on 2026-11-17. That push-triggered run predates this release workflow and does not exercise its pre-release-only publication job.
 
 On 2026-11-11, the first Actions run failed on an exact timestamp-string comparison in a comment integration test, and correctly skipped `build-image`. The test was made tolerant of equivalent timestamp serialization; the subsequent run passed both jobs. See the [successful Actions run](https://github.com/fmoreira13/project-ai-switch/actions/runs/43092399460). A separate temporary-failure check was also performed locally; it is not a claim that the Actions run itself used an injected failure.
 
@@ -211,4 +224,4 @@ The `JSESSIONID` session cookie is HttpOnly and SameSite=Lax; the CSRF token is 
 
 ## Current project status
 
-The Spring Boot project, H2 persistence schema, session authentication, project/task management interface, overview counts, assignee management, comments, and project-scoped access checks are implemented. Automated API/frontend checks and user-reported browser/restart checks are documented in [docs/verification.md](docs/verification.md). The access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md). A proposed version and the limits of the candidate are recorded in the [release notes](docs/release-notes-v0.1.0-rc.1.md); no release has been published.
+The Spring Boot project, H2 persistence schema, session authentication, project/task management interface, overview counts, assignee management, comments, and project-scoped access checks are implemented. Automated API/frontend checks and user-reported browser/restart checks are documented in [docs/verification.md](docs/verification.md). The access policy for this exercise is documented in [docs/architecture.md](docs/architecture.md). The `0.1.0-rc.2` candidate scope and release status are recorded in the [release notes](docs/release-notes-v0.1.0-rc.2.md).

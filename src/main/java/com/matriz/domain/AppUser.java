@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Entity
@@ -39,7 +40,7 @@ public class AppUser implements UserDetails {
 
     public AppUser(String email, String displayName, String passwordHash) {
         this.id = UUID.randomUUID();
-        this.email = email.toLowerCase();
+        this.email = email.toLowerCase(Locale.ROOT);
         this.displayName = displayName;
         this.passwordHash = passwordHash;
         this.active = true;
